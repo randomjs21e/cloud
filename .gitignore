@@ -16,6 +16,9 @@ staticfiles/
 .DS_Store
 Thumbs.db
 
+# Unused downloaded images
+download*.png
+
 # IDE
 .idea/
 .vscode/
