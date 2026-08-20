@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% block title %}Fayllarım - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    <!-- Sidebar -->
+    {% include 'partials/sidebar.html' %}
+
+    <!-- Main -->
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <div class="flex items-center gap-1 text-sm text-gray-400 mb-1">
+                    <a href="{% url 'files:index' %}" class="hover:text-brand-600">Fayllarım</a>
+                    {% for crumb in breadcrumb %}
+                    <span>/</span>
+                    <a href="{% url 'files:folder' crumb.id %}" class="hover:text-brand-600">{{ crumb.name }}</a>
+                    {% endfor %}
+                </div>
+                <h1 class="text-2xl font-bold">{% if current %}{{ current.name }}{% else %}Fayllarım{% endif %}</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'files:trash' %}" class="px-4 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-sm font-medium">🗑️ Zibil</a>
+                <button type="button" onclick="openFolderCreate()" class="px-4 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-sm font-medium">📁 Yeni qovluq</button>
+                <form method="post" action="{% url 'files:upload' %}" enctype="multipart/form-data" class="flex items-center gap-2">
+                    {% csrf_token %}
+                    {% if current %}<input type="hidden" name="folder" value="{{ current.id }}">{% endif %}
+                    <input type="file" name="file" multiple required class="text-sm">
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Yüklə</button>
+                </form>
+                <form method="post" action="{% url 'files:upload' %}" enctype="multipart/form-data" class="flex items-center gap-2" id="folder-form">
+                    {% csrf_token %}
+                    {% if current %}<input type="hidden" name="folder" value="{{ current.id }}">{% endif %}
+                    <input type="file" name="file" webkitdirectory directory multiple class="hidden" id="folder-input">
+                    <input type="hidden" name="folder_paths" id="folder-paths" value="">
+                    <button type="button" onclick="document.getElementById('folder-input').click()" class="px-4 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-sm font-medium">📁 Folder yüklə</button>
+                </form>
+            </div>
+        </div>
+
+        {% if folders %}
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+            {% for folder in folders %}
+            <div class="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-3 group">
+                <a href="{% url 'files:folder' folder.id %}" class="flex items-center gap-3 flex-1 min-w-0">
+                    <span class="text-2xl">📁</span>
+                    <span class="font-medium text-gray-900 truncate">{{ folder.name }}</span>
+                </a>
+                <a href="{% url 'files:folder_delete' folder.id %}" class="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100" title="Sil">🗑</a>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-left text-gray-500">
+                    <tr>
+                        <th class="px-6 py-3 font-medium">Fayl</th>
+                        <th class="px-6 py-3 font-medium">Ölçü</th>
+                        <th class="px-6 py-3 font-medium">Tarix</th>
+                        <th class="px-6 py-3 font-medium text-right">Əməliyyatlar</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for f in files %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-3">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">📄</span>
+                                <span class="font-medium break-all">{{ f.name }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-3 text-gray-500">{{ f.size|filesizeformat }}</td>
+                        <td class="px-6 py-3 text-gray-500">{{ f.created_at|date:"d.m.Y H:i" }}</td>
+                        <td class="px-6 py-3">
+                            <div class="flex gap-2 justify-end items-center">
+                                {% if f.is_office_openable %}
+                                <a href="{% url 'office:open_file' f.id %}" class="text-gray-400 hover:text-brand-600" title="Office-də aç">📝</a>
+                                {% endif %}
+                                <a href="{% url 'files:download' f.id %}" class="text-gray-400 hover:text-brand-600" title="Endir">⬇</a>
+                                <a href="{% url 'files:versions' f.id %}" class="text-gray-400 hover:text-brand-600" title="Versiyalar">🕘</a>
+                                <button type="button" onclick="openMove({{ f.id }}, '{{ f.name|escapejs }}')" class="text-gray-400 hover:text-brand-600" title="Köçür">📂</button>
+                                <button type="button" onclick="openShare({{ f.id }}, '{{ f.name|escapejs }}', '{{ f.share_type }}', '{{ f.share_token }}')" class="text-gray-400 hover:text-brand-600" title="Paylaş">
+                                    {% if f.share_type == 'public' %}🔗{% elif f.share_type == 'account' %}👤{% else %}🔒{% endif %}
+                                </button>
+                                <a href="{% url 'files:trash_file' f.id %}" class="text-gray-400 hover:text-red-500" title="Zibilə at">🗑</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="px-6 py-16 text-center text-gray-400">
+                        <div class="text-5xl mb-3">📂</div>
+                        Burada hələ fayl yoxdur.
+                    </td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if files %}
+        <div class="mt-6">
+            <h2 class="font-semibold mb-3">Paylaşılan fayllar</h2>
+            <div class="space-y-2">
+                {% for f in files %}
+                {% if f.share_type != 'none' %}
+                <div class="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="text-xl">{% if f.share_type == 'public' %}🔗{% else %}👤{% endif %}</span>
+                        <div class="min-w-0">
+                            <div class="font-medium text-sm truncate">{{ f.name }}</div>
+                            <div class="text-xs text-gray-400 truncate">http://127.0.0.1:8000{% url 'files:public' f.share_token %}</div>
+                            <div class="text-xs {% if f.share_type == 'public' %}text-green-600{% else %}text-blue-600{% endif %}">
+                                {% if f.share_type == 'public' %}Hesabsız (ictimai){% else %}Yalnız hesablı{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 shrink-0">
+                        <button onclick="navigator.clipboard.writeText('http://127.0.0.1:8000{% url 'files:public' f.share_token %}')" class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium">Kopyala</button>
+                        <a href="{% url 'files:public' f.share_token %}" target="_blank" class="px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 text-xs font-medium">Aç</a>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </main>
+</div>
+
+<!-- Folder create modal -->
+<div id="folder-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Yeni qovluq</h3>
+            <button type="button" onclick="closeFolderCreate()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <form method="post" action="{% url 'files:folder_create' %}" class="space-y-3">
+            {% csrf_token %}
+            {% if current %}<input type="hidden" name="parent" value="{{ current.id }}">{% endif %}
+            <input type="text" name="name" required placeholder="Qovluq adı" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <button type="submit" class="w-full px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Yarat</button>
+        </form>
+    </div>
+</div>
+
+<!-- Move modal -->
+<div id="move-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Faylı köçür</h3>
+            <button type="button" onclick="closeMove()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <div id="move-file-name" class="text-sm text-gray-500 mb-4 break-all"></div>
+        <form method="post" id="move-form" class="space-y-3">
+            {% csrf_token %}
+            <select name="folder" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="">— Kök qovluq —</option>
+                {% for folder in all_folders %}
+                <option value="{{ folder.id }}">{{ folder.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="w-full px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Köçür</button>
+        </form>
+    </div>
+</div>
+
+<!-- Share modal -->
+<div id="share-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Faylı paylaş</h3>
+            <button type="button" onclick="closeShare()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <div id="share-file-name" class="text-sm text-gray-500 mb-4 break-all"></div>
+        <form method="post" id="share-form" class="space-y-3">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Paylaşma növü</label>
+                <select name="share_type" id="share-type" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <option value="none">🔒 Paylaşma</option>
+                    <option value="public">🔗 Hesabsız (ictimai) — hər kəs aça bilər</option>
+                    <option value="account">👤 Yalnız hesablı — hesabı olmayan hesab açmalıdır</option>
+                </select>
+            </div>
+            <div id="share-link-box" class="hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Paylaşım linki</label>
+                <div class="flex gap-2">
+                    <input type="text" id="share-link" readonly class="flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm">
+                    <button type="button" onclick="copyShareLink()" class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium">Kopyala</button>
+                </div>
+            </div>
+            <button type="submit" class="w-full px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Yadda saxla</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+    var folderInput = document.getElementById('folder-input');
+    var folderPaths = document.getElementById('folder-paths');
+    var folderForm = document.getElementById('folder-form');
+    if (folderInput) {
+        folderInput.addEventListener('change', function () {
+            var paths = [];
+            for (var i = 0; i < folderInput.files.length; i++) {
+                var rel = folderInput.files[i].webkitRelativePath || folderInput.files[i].name;
+                paths.push(rel.replace(/\\/g, '/'));
+            }
+            folderPaths.value = JSON.stringify(paths);
+            folderForm.submit();
+        });
+    }
+
+    var currentFileId = null;
+    var currentToken = null;
+
+    window.openFolderCreate = function () { document.getElementById('folder-modal').classList.remove('hidden'); };
+    window.closeFolderCreate = function () { document.getElementById('folder-modal').classList.add('hidden'); };
+    document.getElementById('folder-modal').addEventListener('click', function (e) { if (e.target === this) closeFolderCreate(); });
+
+    window.openMove = function (fileId, fileName) {
+        document.getElementById('move-file-name').textContent = fileName;
+        document.getElementById('move-form').action = '/files/' + fileId + '/move/';
+        document.getElementById('move-modal').classList.remove('hidden');
+    };
+    window.closeMove = function () { document.getElementById('move-modal').classList.add('hidden'); };
+    document.getElementById('move-modal').addEventListener('click', function (e) { if (e.target === this) closeMove(); });
+
+    window.openShare = function (fileId, fileName, shareType, token) {
+        currentFileId = fileId;
+        currentToken = token || null;
+        document.getElementById('share-file-name').textContent = fileName;
+        document.getElementById('share-form').action = '/files/' + fileId + '/share/';
+        var sel = document.getElementById('share-type');
+        sel.value = shareType;
+        updateShareLinkBox();
+        document.getElementById('share-modal').classList.remove('hidden');
+    };
+
+    window.closeShare = function () {
+        document.getElementById('share-modal').classList.add('hidden');
+    };
+
+    function updateShareLinkBox() {
+        var sel = document.getElementById('share-type');
+        var box = document.getElementById('share-link-box');
+        if (sel.value === 'none') {
+            box.classList.add('hidden');
+        } else {
+            box.classList.remove('hidden');
+            if (!currentToken) {
+                currentToken = 'token-' + currentFileId + '-' + Date.now();
+            }
+            document.getElementById('share-link').value = window.location.origin + '/files/s/' + currentToken + '/';
+        }
+    }
+
+    window.copyShareLink = function () {
+        var input = document.getElementById('share-link');
+        navigator.clipboard.writeText(input.value);
+    };
+
+    document.getElementById('share-type').addEventListener('change', updateShareLinkBox);
+    document.getElementById('share-modal').addEventListener('click', function (e) {
+        if (e.target === this) closeShare();
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,56 @@
+/* Cloud - custom styles */
+body, p, div, span, h1, h2, h3, h4, h5, h6, li, td, th, a {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+/* Slide presentation */
+#present-stage .present-slide {
+    display: none;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem;
+}
+#present-stage .present-slide.active {
+    display: flex;
+}
+#present-stage .present-slide h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 1rem;
+}
+#present-stage .present-slide p {
+    font-size: 1.5rem;
+    color: rgba(255,255,255,0.85);
+    max-width: 60rem;
+}
+#present-stage .present-slide .present-img {
+    max-width: 60%;
+    max-height: 50%;
+    object-fit: contain;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+}
+#present-stage .present-slide.anim-run.anim-fade { animation: pfade 0.6s ease; }
+#present-stage .present-slide.anim-run.anim-slide { animation: pslide 0.6s ease; }
+#present-stage .present-slide.anim-run.anim-zoom { animation: pzoom 0.6s ease; }
+#present-stage .present-slide.anim-run.anim-flip { animation: pflip 0.7s ease; }
+#present-stage .present-slide.anim-run.anim-bounce { animation: pbounce 0.7s ease; }
+@keyframes pfade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pslide { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes pzoom { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes pflip { from { transform: rotateY(90deg); opacity: 0; } to { transform: rotateY(0); opacity: 1; } }
+@keyframes pbounce { 0% { transform: translateY(0); } 40% { transform: translateY(-30px); } 100% { transform: translateY(0); } }
+
+/* Forum rich text body */
+.forum-body img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 0.5rem 0; }
+.forum-body iframe { max-width: 100%; }
+.forum-body p { margin: 0.4rem 0; }
+.forum-body ul, .forum-body ol { padding-left: 1.5rem; margin: 0.4rem 0; }
+.forum-body blockquote { border-left: 3px solid #d1d5db; padding-left: 1rem; color: #6b7280; margin: 0.5rem 0; }
+.forum-body pre { background: #f3f4f6; padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; }

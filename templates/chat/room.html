@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% block title %}{% if is_private %}{{ other.get_full_name|default:other.username }}{% else %}{{ group.name }}{% endif %} - Chat{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 flex flex-col">
+        <div class="p-4 border-b border-gray-200 bg-white flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'chat:index' %}" class="text-sm text-brand-600 hover:underline">← Chat</a>
+                <div class="w-10 h-10 rounded-full {% if is_private %}bg-green-100 text-green-700{% else %}bg-brand-100 text-brand-700{% endif %} flex items-center justify-center font-bold">{% if is_private %}{{ other.username|slice:":1"|upper }}{% else %}{{ group.name|slice:":1"|upper }}{% endif %}</div>
+                <div>
+                    <h1 class="font-semibold text-gray-900">{% if is_private %}{{ other.get_full_name|default:other.username }}{% else %}{{ group.name }}{% endif %}</h1>
+                    <div class="text-xs text-gray-400">{% if is_private %}@{{ other.username }}{% else %}{{ group.members.count }} üzv{% endif %}</div>
+                </div>
+            </div>
+            {% if not is_private and group.owner == user %}
+            <a href="{% url 'chat:delete' group.id %}" class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-sm">🗑 Qrupu sil</a>
+            {% endif %}
+        </div>
+
+        <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50">
+            {% for m in messages %}
+            <div class="flex {% if m.author == user %}justify-end{% endif %}">
+                <div class="max-w-[70%] {% if m.author == user %}bg-brand-600 text-white{% else %}bg-white border border-gray-100{% endif %} rounded-2xl px-4 py-2.5">
+                    {% if m.author != user %}<div class="text-xs font-semibold text-brand-600 mb-0.5">{{ m.author.username }}</div>{% endif %}
+                    {% if m.type == 'image' %}
+                        <img src="{{ m.attachment.url }}" alt="Şəkil" class="rounded-lg max-h-72 w-auto mb-1">
+                    {% elif m.type == 'file' %}
+                        <a href="{{ m.attachment.url }}" target="_blank" class="flex items-center gap-2 {% if m.author == user %}text-white{% else %}text-brand-600{% endif %} hover:underline">
+                            <span class="text-xl">📎</span>
+                            <span class="text-sm font-medium break-all">{{ m.body|default:"Fayl" }}</span>
+                        </a>
+                    {% elif m.type == 'voice' %}
+                        <audio controls src="{{ m.attachment.url }}" class="max-w-[240px] mb-1"></audio>
+                    {% elif m.type == 'contact' %}
+                        <div class="flex items-center gap-3 {% if m.author == user %}text-white{% else %}text-gray-900{% endif %}">
+                            <div class="w-10 h-10 rounded-full {% if m.author == user %}bg-white/20{% else %}bg-green-100 text-green-700{% endif %} flex items-center justify-center font-bold">{{ m.contact_name|slice:":1"|upper }}</div>
+                            <div>
+                                <div class="text-sm font-semibold">{{ m.contact_name }}</div>
+                                {% if m.contact_phone %}<div class="text-xs {% if m.author == user %}text-white/80{% else %}text-gray-500{% endif %}">{{ m.contact_phone }}</div>{% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-sm whitespace-pre-wrap">{{ m.body }}</div>
+                    {% endif %}
+                    <div class="text-[10px] mt-1 {% if m.author == user %}text-white/70{% else %}text-gray-400{% endif %}">{{ m.created_at|date:"H:i" }}</div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-16 text-gray-400">
+                <div class="text-5xl mb-3">💬</div>
+                Hələ mesaj yoxdur. İlk sözü siz deyin!
+            </div>
+            {% endfor %}
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="p-4 bg-white border-t border-gray-200">
+            {% csrf_token %}
+            <input type="hidden" name="type" id="msg-type" value="text">
+            <input type="hidden" name="contact_name" id="contact-name">
+            <input type="hidden" name="contact_phone" id="contact-phone">
+            <div class="flex gap-2 items-center">
+                <div class="flex gap-1">
+                    <label class="cursor-pointer w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-lg" title="Şəkil">
+                        📷
+                        <input type="file" name="attachment" accept="image/*" class="hidden" onchange="setType('image', this)">
+                    </label>
+                    <label class="cursor-pointer w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-lg" title="Fayl">
+                        📎
+                        <input type="file" name="attachment" class="hidden" onchange="setType('file', this)">
+                    </label>
+                    <button type="button" id="record-btn" onclick="toggleRecord()" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-lg" title="Səs yaz">🎤</button>
+                    <button type="button" onclick="openContactPicker()" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-lg" title="Kontakt">👤</button>
+                </div>
+                <input type="text" name="body" id="msg-body" placeholder="Mesaj yazın..." class="flex-1 px-4 py-2.5 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <button type="submit" class="px-5 py-2.5 rounded-full bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Göndər</button>
+            </div>
+        </form>
+    </main>
+</div>
+
+<div id="contact-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Kontakt göndər</h3>
+            <button type="button" onclick="closeContactPicker()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <div class="space-y-2 max-h-80 overflow-y-auto">
+            {% for c in my_contacts %}
+            <button type="button" onclick="sendContact({{ c.id }}, '{{ c.name|escapejs }}', '{{ c.phone|escapejs }}')" class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 border border-gray-100">
+                <div class="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold shrink-0">{{ c.name|slice:":1"|upper }}</div>
+                <div class="min-w-0">
+                    <div class="text-sm font-medium text-gray-900 truncate">{{ c.name }}</div>
+                    {% if c.phone %}<div class="text-xs text-gray-500">{{ c.phone }}</div>{% endif %}
+                </div>
+            </button>
+            {% empty %}
+            <div class="text-center py-8 text-gray-400 text-sm">Kontakt yoxdur. <a href="{% url 'contacts:index' %}" class="text-brand-600 hover:underline">Kontakt əlavə et</a></div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+var CONTACTS = [
+    {% for c in my_contacts %}{ id: {{ c.id }}, name: '{{ c.name|escapejs }}', phone: '{{ c.phone|escapejs }}' },
+    {% endfor %}
+];
+(function () {
+    var box = document.getElementById('chat-box');
+    box.scrollTop = box.scrollHeight;
+
+    window.setType = function (t, input) {
+        document.getElementById('msg-type').value = t;
+        var body = document.getElementById('msg-body');
+        if (t === 'image') body.placeholder = 'Şəkil seçildi — Göndər';
+        else if (t === 'file') body.placeholder = 'Fayl seçildi — Göndər';
+        else if (t === 'voice') body.placeholder = 'Səs seçildi — Göndər';
+        body.value = '';
+    };
+
+    window.openContactPicker = function () { document.getElementById('contact-modal').classList.remove('hidden'); };
+    window.closeContactPicker = function () { document.getElementById('contact-modal').classList.add('hidden'); };
+    document.getElementById('contact-modal').addEventListener('click', function (e) { if (e.target === this) closeContactPicker(); });
+
+    var recorder = null;
+    var chunks = [];
+    var recording = false;
+    var recordBtn = document.getElementById('record-btn');
+
+    window.toggleRecord = function () {
+        if (recording) { stopRecording(); return; }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert('Bu brauzer mikrofon qeydini dəstəkləmir.');
+            return;
+        }
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+            recorder = new MediaRecorder(stream);
+            chunks = [];
+            recorder.ondataavailable = function (e) { if (e.data.size > 0) chunks.push(e.data); };
+            recorder.onstop = function () {
+                stream.getTracks().forEach(function (t) { t.stop(); });
+                var blob = new Blob(chunks, { type: 'audio/webm' });
+                var file = new File([blob], 'voice-' + Date.now() + '.webm', { type: 'audio/webm' });
+                var form = recordBtn.closest('form');
+                var dt = new DataTransfer();
+                dt.items.add(file);
+                var input = form.querySelector('input[name="attachment"]');
+                if (!input) {
+                    input = document.createElement('input');
+                    input.type = 'file';
+                    input.name = 'attachment';
+                    input.className = 'hidden';
+                    form.appendChild(input);
+                }
+                input.files = dt.files;
+                document.getElementById('msg-type').value = 'voice';
+                var body = document.getElementById('msg-body');
+                body.placeholder = 'Səs qeyd edildi — Göndər';
+                body.value = '';
+                recordBtn.classList.remove('bg-red-500', 'text-white');
+                recordBtn.textContent = '🎤';
+            };
+            recorder.start();
+            recording = true;
+            recordBtn.classList.add('bg-red-500', 'text-white');
+            recordBtn.textContent = '⏹';
+        }).catch(function () { alert('Mikrofona giriş icazəsi verilmədi.'); });
+    };
+
+    function stopRecording() {
+        if (recorder && recorder.state !== 'inactive') recorder.stop();
+        recording = false;
+    }
+
+    window.sendContact = function (id, name, phone) {
+        document.getElementById('msg-type').value = 'contact';
+        document.getElementById('contact-name').value = name;
+        document.getElementById('contact-phone').value = phone;
+        var body = document.getElementById('msg-body');
+        body.placeholder = 'Kontakt: ' + name;
+        body.value = '';
+        closeContactPicker();
+    };
+
+    setInterval(function () {
+        fetch(window.location.pathname, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                var newBox = doc.getElementById('chat-box');
+                if (newBox && newBox.innerHTML !== box.innerHTML) {
+                    box.innerHTML = newBox.innerHTML;
+                    box.scrollTop = box.scrollHeight;
+                }
+            });
+    }, 3000);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}{{ category.name }} - Forum{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <a href="{% url 'forum:index' %}" class="text-sm text-brand-600 hover:underline">← Forum</a>
+                <h1 class="text-2xl font-bold mt-1">{{ category.icon }} {{ category.name }}</h1>
+                <p class="text-sm text-gray-500">{{ category.description }}</p>
+            </div>
+            <a href="{% url 'forum:create_thread' category.id %}" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Yeni mövzu</a>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            {% for t in threads %}
+            <a href="{% url 'forum:thread' t.id %}" class="block px-5 py-4 border-b border-gray-50 hover:bg-gray-50">
+                <div class="flex items-center justify-between">
+                    <div class="min-w-0">
+                        <div class="font-medium text-gray-900 truncate">{{ t.title }}</div>
+                        <div class="text-xs text-gray-400 mt-0.5">{{ t.author.username }} · {{ t.created_at|date:"d.m.Y H:i" }}</div>
+                    </div>
+                    <div class="text-xs text-gray-400 shrink-0 ml-4">{{ t.post_count }} cavab</div>
+                </div>
+            </a>
+            {% empty %}
+            <div class="text-center py-16 text-gray-400">
+                <div class="text-5xl mb-3">📭</div>
+                Bu kateqoriyada hələ mövzu yoxdur.
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+{% endblock %}

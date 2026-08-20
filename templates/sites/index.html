@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Vebsaytlar - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="text-2xl font-bold">🌐 Vebsaytlar</h1>
+                <p class="text-sm text-gray-500">Öz vebsaytınızı yaradın və blog paylaşın.</p>
+            </div>
+            <button type="button" onclick="openSiteCreate()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Yeni sayt</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for s in sites %}
+            <div class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center text-xl">🌐</div>
+                    <div class="min-w-0">
+                        <div class="font-semibold text-gray-900 truncate">{{ s.title }}</div>
+                        <a href="{% url 'sites:public' s.slug %}" class="text-xs text-brand-600 hover:underline">/cites/{{ s.slug }}/</a>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-400 mb-3">{{ s.posts.count }} məqalə</div>
+                <div class="flex gap-2">
+                    <a href="{% url 'sites:dashboard' s.slug %}" class="flex-1 text-center px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">İdarə et</a>
+                    <a href="{% url 'sites:public' s.slug %}" target="_blank" class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium">Bax</a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-full text-center py-24 text-gray-400">
+                <div class="text-6xl mb-4">🌐</div>
+                <p class="mb-2">Hələ vebsaytınız yoxdur.</p>
+                <button type="button" onclick="openSiteCreate()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Yeni sayt</button>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+
+<!-- Site create modal -->
+<div id="site-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Yeni vebsayt</h3>
+            <button type="button" onclick="closeSiteCreate()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <form method="post" action="{% url 'sites:create' %}" class="space-y-3">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Sayt adı</label>
+                <input type="text" name="name" required placeholder="Məsələn: mənim-blogum" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <p class="text-xs text-gray-400 mt-1">Saytınız /cites/&lt;ad&gt;/ ünvanında yayımlanacaq.</p>
+            </div>
+            <button type="submit" class="w-full px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Yarat</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+    window.openSiteCreate = function () { document.getElementById('site-modal').classList.remove('hidden'); };
+    window.closeSiteCreate = function () { document.getElementById('site-modal').classList.add('hidden'); };
+    document.getElementById('site-modal').addEventListener('click', function (e) { if (e.target === this) closeSiteCreate(); });
+})();
+</script>
+{% endblock %}

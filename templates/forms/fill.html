@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}{{ survey.title }}{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    <div class="max-w-2xl mx-auto w-full p-6">
+        <div class="bg-white rounded-2xl border border-gray-100 p-8 mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">{{ survey.title }}</h1>
+            {% if survey.description %}<p class="text-gray-500 mt-2">{{ survey.description }}</p>{% endif %}
+            <p class="text-xs text-gray-400 mt-3">* işarəli suallar məcburidir</p>
+        </div>
+
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            {% for q in survey.questions.all %}
+            <div class="bg-white rounded-2xl border border-gray-100 p-6">
+                <label class="block font-medium text-gray-900 mb-3">{{ q.text }} {% if q.required %}<span class="text-red-500">*</span>{% endif %}</label>
+                {% if q.type == 'text' %}
+                <input type="text" name="q_{{ q.id }}" {% if q.required %}required{% endif %} class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                {% elif q.type == 'textarea' %}
+                <textarea name="q_{{ q.id }}" rows="3" {% if q.required %}required{% endif %} class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                {% elif q.type == 'choice' %}
+                <div class="space-y-2">
+                    {% for opt in q.option_list %}
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input type="radio" name="q_{{ q.id }}" value="{{ opt }}" {% if q.required %}required{% endif %} class="text-brand-600 focus:ring-brand-500">
+                        {{ opt }}
+                    </label>
+                    {% endfor %}
+                </div>
+                {% elif q.type == 'multi' %}
+                <div class="space-y-2">
+                    {% for opt in q.option_list %}
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" name="q_{{ q.id }}" value="{{ opt }}" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
+                        {{ opt }}
+                    </label>
+                    {% endfor %}
+                </div>
+                {% elif q.type == 'rating' %}
+                <div class="flex gap-2">
+                    {% for i in "12345" %}
+                    <label class="flex flex-col items-center gap-1">
+                        <input type="radio" name="q_{{ q.id }}" value="{{ i }}" {% if q.required %}required{% endif %} class="text-brand-600 focus:ring-brand-500">
+                        <span class="text-sm text-gray-600">{{ i }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="w-full px-4 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium">Göndər</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

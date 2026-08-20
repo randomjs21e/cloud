@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}{{ drive.name }} - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <a href="{% url 'files:drives' %}" class="text-sm text-brand-600 hover:underline">← Sürücülər</a>
+                <h1 class="text-2xl font-bold mt-1">👥 {{ drive.name }}</h1>
+                <p class="text-sm text-gray-500">Sahibi: {{ drive.owner.username }}</p>
+            </div>
+            <div class="flex items-center gap-2">
+                {% if drive.owner == user %}
+                <a href="{% url 'files:drive_delete' drive.id %}" class="px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium">🗑 Sürücünü sil</a>
+                {% endif %}
+                <form method="post" action="{% url 'files:drive_upload' drive.id %}" enctype="multipart/form-data" class="flex items-center gap-2">
+                    {% csrf_token %}
+                    <input type="file" name="file" required class="text-sm">
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Yüklə</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-left text-gray-500">
+                            <tr>
+                                <th class="px-6 py-3 font-medium">Fayl</th>
+                                <th class="px-6 py-3 font-medium">Yükləyən</th>
+                                <th class="px-6 py-3 font-medium">Ölçü</th>
+                                <th class="px-6 py-3 font-medium text-right">Əməliyyatlar</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for f in files %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-3"><div class="flex items-center gap-3"><span class="text-xl">📄</span><span class="font-medium break-all">{{ f.name }}</span></div></td>
+                                <td class="px-6 py-3 text-gray-500">{{ f.uploader.username }}</td>
+                                <td class="px-6 py-3 text-gray-500">{{ f.size|filesizeformat }}</td>
+                                <td class="px-6 py-3">
+                                    <div class="flex gap-2 justify-end items-center">
+                                        <a href="{% url 'files:drive_download' drive.id f.id %}" class="text-gray-400 hover:text-brand-600" title="Endir">⬇</a>
+                                        <a href="{% url 'files:drive_delete_file' drive.id f.id %}" class="text-gray-400 hover:text-red-500" title="Sil">🗑</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="px-6 py-16 text-center text-gray-400">
+                                <div class="text-5xl mb-3">📂</div>
+                                Bu sürücüdə hələ fayl yoxdur.
+                            </td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div>
+                <div class="bg-white rounded-2xl border border-gray-100 p-5">
+                    <h2 class="font-semibold mb-3">Üzvlər ({{ drive.members.count }})</h2>
+                    <div class="space-y-2 mb-4">
+                        {% for m in drive.members.all %}
+                        <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <div class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-bold shrink-0">{{ m.username|slice:":1"|upper }}</div>
+                                <div class="min-w-0">
+                                    <div class="text-sm font-medium truncate">{{ m.get_full_name|default:m.username }}</div>
+                                    <div class="text-xs text-gray-400">@{{ m.username }}{% if m == drive.owner %} · Sahib{% endif %}</div>
+                                </div>
+                            </div>
+                            {% if drive.owner == user and m != drive.owner %}
+                            <a href="{% url 'files:drive_remove_member' drive.id m.id %}" class="text-gray-300 hover:text-red-500 text-sm" title="Çıxar">✕</a>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if drive.owner == user %}
+                    <form method="post" action="{% url 'files:drive_add_member' drive.id %}" class="flex gap-2">
+                        {% csrf_token %}
+                        <select name="user" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm">
+                            {% for u in users %}
+                            <option value="{{ u.id }}">@{{ u.username }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm">+ Əlavə et</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

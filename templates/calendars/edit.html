@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}Redaktə - {{ event.title }}{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6 max-w-2xl">
+        <a href="{% url 'calendars:detail' event.id %}" class="text-sm text-brand-600 hover:underline">← Detallar</a>
+        <h1 class="text-2xl font-bold mt-1 mb-6">Hadisəni redaktə et</h1>
+        <form method="post" class="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Başlıq</label>
+                <input type="text" name="title" value="{{ event.title }}" required class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tarix</label>
+                    <input type="date" name="date" value="{{ event.date|date:'Y-m-d' }}" required class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Saat</label>
+                    <input type="time" name="time" value="{{ event.time|time:'H:i' }}" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Təsvir</label>
+                <textarea name="description" rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">{{ event.description }}</textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">İstifadəçiləri etiketlə</label>
+                <div class="relative">
+                    <input type="text" id="user-search" placeholder="İstifadəçi adını yazın..." autocomplete="off" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <div id="user-suggestions" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto"></div>
+                </div>
+                <div id="tagged-users" class="flex flex-wrap gap-1.5 mt-2"></div>
+                <p class="text-xs text-gray-400 mt-1">Adı yazın, uyğun istifadəçini seçin.</p>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="px-5 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-medium">💾 Yadda saxla</button>
+                <a href="{% url 'calendars:detail' event.id %}" class="px-5 py-2.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 font-medium">Ləğv et</a>
+            </div>
+        </form>
+    </main>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+var ALL_USERS = [
+    {% for u in other_users %}{ id: {{ u.id }}, name: '{{ u.get_full_name|default:u.username|escapejs }}', username: '{{ u.username|escapejs }}' },
+    {% endfor %}
+];
+var CURRENT_INVITEES = [{% for id in current_invitees %}{{ id }},{% endfor %}];
+(function () {
+    var selected = {};
+    var search = document.getElementById('user-search');
+    var suggestions = document.getElementById('user-suggestions');
+    var tagged = document.getElementById('tagged-users');
+
+    CURRENT_INVITEES.forEach(function (id) {
+        var u = ALL_USERS.find(function (x) { return x.id === id; });
+        if (u) selected[id] = u;
+    });
+
+    function renderTagged() {
+        tagged.innerHTML = '';
+        Object.keys(selected).forEach(function (id) {
+            var u = selected[id];
+            var chip = document.createElement('span');
+            chip.className = 'inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-50 text-brand-700 text-xs';
+            chip.innerHTML = u.name + ' <button type="button" onclick="removeTag(' + id + ')" class="text-brand-500 hover:text-red-500">&times;</button>';
+            var hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'invitees';
+            hidden.value = id;
+            chip.appendChild(hidden);
+            tagged.appendChild(chip);
+        });
+    }
+    window.removeTag = function (id) {
+        delete selected[id];
+        renderTagged();
+    };
+    window.addTag = function (id) {
+        var u = ALL_USERS.find(function (x) { return x.id === id; });
+        if (u && !selected[id]) {
+            selected[id] = u;
+            renderTagged();
+        }
+        search.value = '';
+        suggestions.classList.add('hidden');
+    };
+
+    search.addEventListener('input', function () {
+        var q = search.value.trim().toLowerCase();
+        suggestions.innerHTML = '';
+        if (!q) { suggestions.classList.add('hidden'); return; }
+        var matches = ALL_USERS.filter(function (u) {
+            return !selected[u.id] && (u.name.toLowerCase().indexOf(q) >= 0 || u.username.toLowerCase().indexOf(q) >= 0);
+        });
+        if (!matches.length) {
+            suggestions.innerHTML = '<div class="px-3 py-2 text-sm text-gray-400">İstifadəçi tapılmadı</div>';
+            suggestions.classList.remove('hidden');
+            return;
+        }
+        matches.forEach(function (u) {
+            var item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'w-full text-left px-3 py-2 text-sm hover:bg-gray-50';
+            item.innerHTML = '<span class="font-medium">' + u.name + '</span> <span class="text-gray-400">@' + u.username + '</span>';
+            item.onclick = function () { addTag(u.id); };
+            suggestions.appendChild(item);
+        });
+        suggestions.classList.remove('hidden');
+    });
+    search.addEventListener('blur', function () {
+        setTimeout(function () { suggestions.classList.add('hidden'); }, 150);
+    });
+
+    renderTagged();
+})();
+</script>
+{% endblock %}

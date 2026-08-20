@@ -1,0 +1,53 @@
+{% comment %}
+Rich text editor partial.
+Usage:
+  {% include 'partials/richtext.html' with field_name='body' field_value=email.body rows=10 %}
+The editor writes HTML into a hidden textarea named {{ field_name }}.
+{% endcomment %}
+<div class="richtext-editor border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-brand-500">
+    <div class="flex flex-wrap items-center gap-1 px-2 py-1.5 bg-gray-50 border-b border-gray-200">
+        <button type="button" data-cmd="bold" title="Qalın" class="w-8 h-8 rounded hover:bg-gray-200 text-sm font-bold">B</button>
+        <button type="button" data-cmd="italic" title="İtalik" class="w-8 h-8 rounded hover:bg-gray-200 text-sm italic">I</button>
+        <button type="button" data-cmd="underline" title="Alt xətt" class="w-8 h-8 rounded hover:bg-gray-200 text-sm underline">U</button>
+        <span class="w-px h-5 bg-gray-300 mx-1"></span>
+        <button type="button" data-cmd="formatBlock" data-value="h1" title="Başlıq 1" class="w-8 h-8 rounded hover:bg-gray-200 text-xs font-bold">H1</button>
+        <button type="button" data-cmd="formatBlock" data-value="h2" title="Başlıq 2" class="w-8 h-8 rounded hover:bg-gray-200 text-xs font-bold">H2</button>
+        <button type="button" data-cmd="formatBlock" data-value="p" title="Paraqraf" class="w-8 h-8 rounded hover:bg-gray-200 text-xs">¶</button>
+        <span class="w-px h-5 bg-gray-300 mx-1"></span>
+        <button type="button" data-cmd="insertUnorderedList" title="Siyahı" class="w-8 h-8 rounded hover:bg-gray-200 text-sm">•≡</button>
+        <button type="button" data-cmd="insertOrderedList" title="Nömrəli siyahı" class="w-8 h-8 rounded hover:bg-gray-200 text-sm">1≡</button>
+        <button type="button" data-cmd="createLink" title="Link" class="w-8 h-8 rounded hover:bg-gray-200 text-sm">🔗</button>
+        <button type="button" data-cmd="formatBlock" data-value="blockquote" title="Sitat" class="w-8 h-8 rounded hover:bg-gray-200 text-sm">❝</button>
+    </div>
+    <div contenteditable="true" data-editor class="px-4 py-3 min-h-[{{ rows|default:8 }}0px] prose max-w-none focus:outline-none">{{ field_value|safe }}</div>
+    <textarea name="{{ field_name }}" class="hidden" data-target></textarea>
+</div>
+<script>
+(function () {
+    var root = document.currentScript.parentElement;
+    var editor = root.querySelector('[data-editor]');
+    var target = root.querySelector('[data-target]');
+    function sync() { target.value = editor.innerHTML; }
+    editor.addEventListener('input', sync);
+    root.querySelectorAll('[data-cmd]').forEach(function (btn) {
+        btn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+        btn.addEventListener('click', function () {
+            var cmd = btn.getAttribute('data-cmd');
+            var val = btn.getAttribute('data-value');
+            if (cmd === 'createLink') {
+                var url = prompt('Link ünvanı:');
+                if (url) document.execCommand('createLink', false, url);
+            } else if (cmd === 'formatBlock') {
+                document.execCommand('formatBlock', false, val);
+            } else {
+                document.execCommand(cmd, false, null);
+            }
+            sync();
+            editor.focus();
+        });
+    });
+    var form = root.closest('form');
+    if (form) form.addEventListener('submit', sync);
+    sync();
+})();
+</script>

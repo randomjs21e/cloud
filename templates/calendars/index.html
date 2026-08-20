@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% block title %}Təqvim - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold">{{ month_name }} {{ year }}</h1>
+                <div class="flex gap-1">
+                    <a href="{% url 'calendars:index' %}?year={{ prev.0 }}&month={{ prev.1 }}" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-sm">‹</a>
+                    <a href="{% url 'calendars:index' %}" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-sm">Bu gün</a>
+                    <a href="{% url 'calendars:index' %}?year={{ nxt.0 }}&month={{ nxt.1 }}" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-sm">›</a>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'calendars:notifications' %}" class="px-4 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-sm font-medium">🔔 Bildirişlər</a>
+                <button type="button" onclick="openCreate()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Hadisə</button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div class="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
+                {% for d in day_names %}
+                <div class="px-3 py-2 text-xs font-semibold text-gray-500 text-center">{{ d }}</div>
+                {% endfor %}
+            </div>
+            {% for week in weeks %}
+            <div class="grid grid-cols-7 border-b border-gray-50">
+                {% for cell in week %}
+                <div class="min-h-28 p-2 border-r border-gray-50 {% if cell.day == 0 %}bg-gray-50/50{% endif %}">
+                    {% if cell.day != 0 %}
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm font-medium {% if cell.day == today.day and month == today.month and year == today.year %}w-6 h-6 rounded-full bg-brand-600 text-white flex items-center justify-center{% endif %}">{{ cell.day }}</span>
+                    </div>
+                    <div class="space-y-1">
+                        {% for ev, is_owner in cell.events %}
+                        <a href="{% url 'calendars:detail' ev.id %}" class="flex items-center justify-between gap-1 text-xs px-1.5 py-0.5 rounded {% if is_owner %}bg-brand-50 text-brand-700{% else %}bg-green-50 text-green-700{% endif %} truncate hover:opacity-80" title="{{ ev.title }}">
+                            <span class="truncate">{% if ev.time %}{{ ev.time|time:"H:i" }} {% endif %}{{ ev.title }}</span>
+                            <span class="shrink-0">🔍</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+
+<!-- Create event modal -->
+<div id="create-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Yeni hadisə</h3>
+            <button type="button" onclick="closeCreate()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <form method="post" action="{% url 'calendars:create' %}" class="space-y-3">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Başlıq</label>
+                <input type="text" name="title" required class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tarix</label>
+                    <input type="date" name="date" required class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Saat</label>
+                    <input type="time" name="time" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Təsvir</label>
+                <textarea name="description" rows="2" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">İstifadəçiləri etiketlə</label>
+                <div class="relative">
+                    <input type="text" id="user-search" placeholder="İstifadəçi adını yazın..." autocomplete="off" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <div id="user-suggestions" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto"></div>
+                </div>
+                <div id="tagged-users" class="flex flex-wrap gap-1.5 mt-2"></div>
+                <p class="text-xs text-gray-400 mt-1">Adı yazın, uyğun istifadəçini seçin. Etiketlənənə bildiriş gedir; qəbul etsə, hər ikiniz təqvimdə görünəcəksiniz.</p>
+            </div>
+            <button type="submit" class="w-full px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Yarat</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+var ALL_USERS = [
+    {% for u in other_users %}{ id: {{ u.id }}, name: '{{ u.get_full_name|default:u.username|escapejs }}', username: '{{ u.username|escapejs }}' },
+    {% endfor %}
+];
+(function () {
+    var selected = {};
+    var search = document.getElementById('user-search');
+    var suggestions = document.getElementById('user-suggestions');
+    var tagged = document.getElementById('tagged-users');
+
+    window.openCreate = function () {
+        document.getElementById('create-modal').classList.remove('hidden');
+    };
+    window.closeCreate = function () {
+        document.getElementById('create-modal').classList.add('hidden');
+    };
+    document.getElementById('create-modal').addEventListener('click', function (e) {
+        if (e.target === this) closeCreate();
+    });
+
+    function renderTagged() {
+        tagged.innerHTML = '';
+        Object.keys(selected).forEach(function (id) {
+            var u = selected[id];
+            var chip = document.createElement('span');
+            chip.className = 'inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-50 text-brand-700 text-xs';
+            chip.innerHTML = u.name + ' <button type="button" onclick="removeTag(' + id + ')" class="text-brand-500 hover:text-red-500">&times;</button>';
+            var hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'invitees';
+            hidden.value = id;
+            chip.appendChild(hidden);
+            tagged.appendChild(chip);
+        });
+    }
+    window.removeTag = function (id) {
+        delete selected[id];
+        renderTagged();
+    };
+    window.addTag = function (id) {
+        var u = ALL_USERS.find(function (x) { return x.id === id; });
+        if (u && !selected[id]) {
+            selected[id] = u;
+            renderTagged();
+        }
+        search.value = '';
+        suggestions.classList.add('hidden');
+    };
+
+    search.addEventListener('input', function () {
+        var q = search.value.trim().toLowerCase();
+        suggestions.innerHTML = '';
+        if (!q) { suggestions.classList.add('hidden'); return; }
+        var matches = ALL_USERS.filter(function (u) {
+            return !selected[u.id] && (u.name.toLowerCase().indexOf(q) >= 0 || u.username.toLowerCase().indexOf(q) >= 0);
+        });
+        if (!matches.length) {
+            suggestions.innerHTML = '<div class="px-3 py-2 text-sm text-gray-400">İstifadəçi tapılmadı</div>';
+            suggestions.classList.remove('hidden');
+            return;
+        }
+        matches.forEach(function (u) {
+            var item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'w-full text-left px-3 py-2 text-sm hover:bg-gray-50';
+            item.innerHTML = '<span class="font-medium">' + u.name + '</span> <span class="text-gray-400">@' + u.username + '</span>';
+            item.onclick = function () { addTag(u.id); };
+            suggestions.appendChild(item);
+        });
+        suggestions.classList.remove('hidden');
+    });
+    search.addEventListener('blur', function () {
+        setTimeout(function () { suggestions.classList.add('hidden'); }, 150);
+    });
+})();
+</script>
+{% endblock %}

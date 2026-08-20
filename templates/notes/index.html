@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Qeydlər - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 flex">
+        <!-- Notes list -->
+        <div class="w-80 border-r border-gray-200 flex flex-col bg-white">
+            <div class="p-4 border-b border-gray-100">
+                <div class="flex items-center justify-between mb-3">
+                    <h1 class="text-xl font-bold">Qeydlər</h1>
+                    <a href="{% url 'notes:create' %}" class="w-9 h-9 rounded-full bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center text-xl" title="Yeni qeyd">+</a>
+                </div>
+                <input type="text" id="note-search" placeholder="Axtar..." class="w-full px-3 py-2 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+            </div>
+            <div id="note-list" class="flex-1 overflow-y-auto">
+                {% for n in notes %}
+                <a href="{% url 'notes:edit' n.id %}" class="block px-4 py-3 border-b border-gray-50 hover:bg-gray-50 {% if selected and selected.id == n.id %}bg-brand-50{% endif %}">
+                    <div class="font-medium text-sm truncate">{{ n.title|default:"Yeni qeyd" }}</div>
+                    <div class="text-xs text-gray-400 mt-0.5 truncate">{{ n.body|striptags|truncatechars:60 }}</div>
+                    <div class="text-xs text-gray-400 mt-0.5">{{ n.updated_at|date:"d.m.Y H:i" }}</div>
+                </a>
+                {% empty %}
+                <div class="p-6 text-center text-gray-400 text-sm">Hələ qeyd yoxdur.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Editor -->
+        <div class="flex-1 p-6">
+            {% if selected %}
+            <form method="post" action="{% url 'notes:edit' selected.id %}" class="h-full flex flex-col">
+                {% csrf_token %}
+                <div class="flex items-center justify-between mb-4">
+                    <div class="text-xs text-gray-400">Son dəyişiklik: {{ selected.updated_at|date:"d.m.Y H:i" }}</div>
+                    <div class="flex gap-2">
+                        <a href="{% url 'notes:delete' selected.id %}" class="px-3 py-1.5 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 text-sm">🗑 Sil</a>
+                        <button type="submit" class="px-4 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">💾 Yadda saxla</button>
+                    </div>
+                </div>
+                <input type="text" name="title" value="{{ selected.title }}" placeholder="Başlıq" class="w-full text-2xl font-bold mb-4 px-0 py-1 border-b border-transparent focus:border-brand-300 focus:outline-none bg-transparent">
+                <div class="flex-1">
+                    <div id="note-editor" class="min-h-[60vh]"></div>
+                </div>
+                <input type="hidden" name="body" id="note-body" value="{{ selected.body }}">
+            </form>
+            {% else %}
+            <div class="h-full flex flex-col items-center justify-center text-gray-400">
+                <div class="text-6xl mb-4">🗒️</div>
+                <p class="mb-4">Qeyd seçin və ya yenisini yaradın.</p>
+                <a href="{% url 'notes:create' %}" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Yeni qeyd</a>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}
+{% block extra_js %}
+{% if selected %}
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
+<script>
+(function () {
+    var bodyInput = document.getElementById('note-body');
+    var quill = new Quill('#note-editor', {
+        theme: 'snow',
+        placeholder: 'Qeyd yazın...',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                ['link'],
+                ['clean']
+            ]
+        }
+    });
+    if (bodyInput.value) {
+        quill.clipboard.dangerouslyPasteHTML(bodyInput.value);
+    }
+    document.querySelector('form').addEventListener('submit', function () {
+        bodyInput.value = quill.root.innerHTML;
+    });
+
+    var search = document.getElementById('note-search');
+    if (search) {
+        search.addEventListener('input', function () {
+            var q = search.value.toLowerCase();
+            document.querySelectorAll('#note-list a').forEach(function (a) {
+                a.style.display = a.textContent.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
+            });
+        });
+    }
+})();
+</script>
+{% endif %}
+{% endblock %}

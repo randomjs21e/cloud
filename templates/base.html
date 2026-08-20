@@ -1,0 +1,44 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Cloud{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef4ff', 100: '#d9e6ff', 200: '#bcd3ff', 300: '#8eb6ff',
+                            400: '#598dff', 500: '#3366ff', 600: '#1f47f5', 700: '#1a36e2',
+                            800: '#1c2fb7', 900: '#1d2d90',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased">
+    {% if messages %}
+    <div class="fixed top-4 right-4 z-50 space-y-2">
+        {% for message in messages %}
+        <div data-dismiss class="px-4 py-3 rounded-lg shadow-lg text-sm font-medium
+            {% if message.tags == 'success' %}bg-green-600 text-white
+            {% elif message.tags == 'error' %}bg-red-600 text-white
+            {% elif message.tags == 'warning' %}bg-yellow-500 text-white
+            {% else %}bg-gray-800 text-white{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

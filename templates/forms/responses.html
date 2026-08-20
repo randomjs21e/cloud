@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Cavablar - {{ survey.title }}{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <a href="{% url 'forms:edit' survey.id %}" class="text-sm text-brand-600 hover:underline">← Anketə qayıt</a>
+                <h1 class="text-2xl font-bold mt-1">Cavablar ({{ responses.count }})</h1>
+            </div>
+        </div>
+
+        {% if responses %}
+        <div class="space-y-4">
+            {% for r in responses %}
+            <div class="bg-white rounded-2xl border border-gray-100 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-sm font-semibold text-gray-700">Cavab #{{ r.id }}</span>
+                    <span class="text-xs text-gray-400">{{ r.created_at|date:"d.m.Y H:i" }}{% if r.respondent %} · {{ r.respondent.username }}{% else %} · Anonim{% endif %}</span>
+                </div>
+                <div class="space-y-2">
+                    {% for a in r.answers.all %}
+                    <div class="text-sm">
+                        <span class="text-gray-500">{{ a.question.text }}:</span>
+                        <span class="font-medium text-gray-800">{{ a.value|default:"—" }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-16 text-gray-400">
+            <div class="text-5xl mb-3">📭</div>
+            Hələ cavab yoxdur.
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

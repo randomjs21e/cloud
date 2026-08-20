@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Görüşlər - {{ link.title }}{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+    <main class="flex-1 p-6">
+        <a href="{% url 'scheduler:index' %}" class="text-sm text-brand-600 hover:underline">← Görüş planlayıcı</a>
+        <h1 class="text-2xl font-bold mt-1 mb-6">📅 {{ link.title }} — Görüşlər</h1>
+
+        <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-left text-gray-500">
+                    <tr>
+                        <th class="px-6 py-3 font-medium">Ad</th>
+                        <th class="px-6 py-3 font-medium">E-poçt</th>
+                        <th class="px-6 py-3 font-medium">Vaxt</th>
+                        <th class="px-6 py-3 font-medium">Qeyd</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for b in bookings %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-3 font-medium">{{ b.name }}</td>
+                        <td class="px-6 py-3 text-gray-500">{{ b.email|default:"—" }}</td>
+                        <td class="px-6 py-3 text-gray-500">{{ b.start_time|date:"d.m.Y H:i" }}</td>
+                        <td class="px-6 py-3 text-gray-500">{{ b.notes|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="px-6 py-16 text-center text-gray-400">
+                        <div class="text-5xl mb-3">📅</div>
+                        Hələ görüş təyin edilməyib.
+                    </td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+{% endblock %}

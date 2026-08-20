@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+    <main class="flex-1 p-6">
+        <h1 class="text-2xl font-bold mb-2">📊 Dashboard</h1>
+        <p class="text-sm text-gray-500 mb-6">Xoş gəldiniz, {{ user.get_full_name|default:user.username }}! Bütün app-lərinizin ümumi görünüşü.</p>
+
+        <div class="bg-white rounded-2xl border border-gray-100 p-5 mb-6">
+            <div class="flex items-center justify-between mb-2">
+                <span class="font-medium text-gray-700">Saxlama</span>
+                <span class="text-sm text-gray-500">{{ stats.total_used|filesizeformat }} / {{ stats.limit|filesizeformat }}</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-3">
+                <div class="bg-brand-600 h-3 rounded-full" style="width: {{ stats.percent }}%"></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <a href="{% url 'files:index' %}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="text-3xl mb-2">📁</div>
+                <div class="text-2xl font-bold">{{ stats.files }}</div>
+                <div class="text-sm text-gray-500">Fayl</div>
+            </a>
+            <a href="{% url 'files:photos' %}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="text-3xl mb-2">🖼️</div>
+                <div class="text-2xl font-bold">{{ stats.photos }}</div>
+                <div class="text-sm text-gray-500">Foto</div>
+            </a>
+            <a href="{% url 'files:drives' %}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="text-3xl mb-2">👥</div>
+                <div class="text-2xl font-bold">{{ stats.drives }}</div>
+                <div class="text-sm text-gray-500">Sürücü</div>
+            </a>
+            <a href="{% url 'notes:index' %}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="text-3xl mb-2">🗒️</div>
+                <div class="text-2xl font-bold">{{ stats.notes }}</div>
+                <div class="text-sm text-gray-500">Qeyd</div>
+            </a>
+            <a href="{% url 'contacts:index' %}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="text-3xl mb-2">👥</div>
+                <div class="text-2xl font-bold">{{ stats.contacts }}</div>
+                <div class="text-sm text-gray-500">Kontakt</div>
+            </a>
+            <a href="{% url 'chat:index' %}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="text-3xl mb-2">💬</div>
+                <div class="text-2xl font-bold">{{ stats.chat_messages }}</div>
+                <div class="text-sm text-gray-500">Chat mesajı</div>
+            </a>
+            <a href="{% url 'mail:sent' %}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="text-3xl mb-2">✉️</div>
+                <div class="text-2xl font-bold">{{ stats.emails_sent }}</div>
+                <div class="text-sm text-gray-500">Göndərilən e-poçt</div>
+            </a>
+            <a href="{% url 'tasks:index' %}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="text-3xl mb-2">✅</div>
+                <div class="text-2xl font-bold">{{ stats.tasks }}</div>
+                <div class="text-sm text-gray-500">Tapşırıq</div>
+            </a>
+            <a href="{% url 'sites:index' %}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="text-3xl mb-2">🌐</div>
+                <div class="text-2xl font-bold">{{ stats.sites }}</div>
+                <div class="text-sm text-gray-500">Vebsayt</div>
+            </a>
+            <a href="{% url 'sites:index' %}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="text-3xl mb-2">📝</div>
+                <div class="text-2xl font-bold">{{ stats.posts }}</div>
+                <div class="text-sm text-gray-500">Məqalə</div>
+            </a>
+            <a href="{% url 'scheduler:index' %}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="text-3xl mb-2">📅</div>
+                <div class="text-2xl font-bold">{{ stats.bookings }}</div>
+                <div class="text-sm text-gray-500">Görüş</div>
+            </a>
+            <a href="{% url 'links:index' %}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="text-3xl mb-2">🔗</div>
+                <div class="text-2xl font-bold">{{ stats.short_links }}</div>
+                <div class="text-sm text-gray-500">Qısa link</div>
+            </a>
+        </div>
+    </main>
+</div>
+{% endblock %}

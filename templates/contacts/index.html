@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}Kontaktlar - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold">Kontaktlar</h1>
+            <button type="button" onclick="openCreate()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Yeni kontakt</button>
+        </div>
+
+        <form method="get" class="mb-6">
+            <input type="text" name="q" value="{{ q }}" placeholder="Ad, nömrə və ya e-poçtla axtar..." class="w-full max-w-md px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </form>
+
+        {% if suggestions %}
+        <div class="mb-6">
+            <h2 class="font-semibold text-gray-700 mb-3">Sizin üçün təkliflər</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {% for u in suggestions %}
+                <div class="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold shrink-0">{{ u.username|slice:":1"|upper }}</div>
+                        <div class="min-w-0">
+                            <div class="text-sm font-medium text-gray-900 truncate">{{ u.get_full_name|default:u.username }}</div>
+                            <div class="text-xs text-gray-400">{{ u.phone }}</div>
+                        </div>
+                    </div>
+                    <a href="{% url 'contacts:add_suggestion' u.id %}" class="px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 text-xs font-medium shrink-0">+ Əlavə et</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            {% for c in contacts %}
+            <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-50 hover:bg-gray-50">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold shrink-0">{{ c.name|slice:":1"|upper }}</div>
+                    <div class="min-w-0">
+                        <div class="font-medium text-gray-900 truncate">{{ c.name }}</div>
+                        <div class="text-xs text-gray-400 truncate">
+                            {% if c.phone %}{{ c.phone }}{% endif %}
+                            {% if c.email %}{% if c.phone %} · {% endif %}{{ c.email }}{% endif %}
+                            {% if c.company %}{% if c.phone or c.email %} · {% endif %}{{ c.company }}{% endif %}
+                            {% if c.address %}{% if c.phone or c.email or c.company %} · {% endif %}{{ c.address }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-2 shrink-0">
+                    {% if c.address %}
+                    <a href="https://www.openstreetmap.org/search?query={{ c.address|urlencode }}" target="_blank" class="px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 text-sm" title="Xəritədə göstər">🗺️</a>
+                    {% endif %}
+                    <a href="{% url 'contacts:edit' c.id %}" class="px-3 py-1.5 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 text-sm">✏️</a>
+                    <a href="{% url 'contacts:delete' c.id %}" class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-sm">🗑</a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-16 text-gray-400">
+                <div class="text-5xl mb-3">👥</div>
+                {% if q %}Heç nə tapılmadı.{% else %}Hələ kontakt yoxdur. Yenisini əlavə edin.{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+
+<div id="create-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Yeni kontakt</h3>
+            <button type="button" onclick="closeCreate()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <form method="post" action="{% url 'contacts:create' %}" class="space-y-3">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ad *</label>
+                <input type="text" name="name" required class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+                <input type="text" name="phone" placeholder="+994..." class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">E-poçt</label>
+                <input type="email" name="email" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Şirkət</label>
+                <input type="text" name="company" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ünvan</label>
+                <input type="text" name="address" placeholder="Şəhər, küçə..." class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Qeyd</label>
+                <textarea name="notes" rows="2" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+            </div>
+            <button type="submit" class="w-full px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Əlavə et</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+    window.openCreate = function () { document.getElementById('create-modal').classList.remove('hidden'); };
+    window.closeCreate = function () { document.getElementById('create-modal').classList.add('hidden'); };
+    document.getElementById('create-modal').addEventListener('click', function (e) { if (e.target === this) closeCreate(); });
+})();
+</script>
+{% endblock %}

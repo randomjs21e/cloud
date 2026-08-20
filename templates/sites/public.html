@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}{{ site.title }}{% endblock %}
+{% block content %}
+{% if site.theme == 'dark' %}
+<div class="min-h-screen bg-gray-900 text-gray-100">
+    <header class="border-b border-gray-800">
+        <div class="max-w-4xl mx-auto px-6 py-12 text-center">
+            <h1 class="text-4xl font-bold">{{ site.title }}</h1>
+            {% if site.tagline %}<p class="text-gray-400 mt-2">{{ site.tagline }}</p>{% endif %}
+        </div>
+    </header>
+    {% if site.ad_code %}<div class="max-w-4xl mx-auto px-6 py-4">{{ site.ad_code|safe }}</div>{% endif %}
+    <main class="max-w-4xl mx-auto px-6 py-10 flex gap-8">
+        <div class="flex-1">
+            {% for p in posts %}
+            <a href="{% url 'sites:post' site.slug p.slug %}" class="block bg-gray-800 rounded-2xl p-6 mb-4 hover:bg-gray-750 transition">
+                <h2 class="text-xl font-semibold">{{ p.title }}</h2>
+                <p class="text-gray-400 text-sm mt-1">{{ p.created_at|date:"d.m.Y" }}</p>
+            </a>
+            {% empty %}
+            <p class="text-center text-gray-500 py-16">Hələ məqalə yoxdur.</p>
+            {% endfor %}
+        </div>
+        {% include 'sites/_widgets.html' %}
+    </main>
+</div>
+{% elif site.theme == 'brand' %}
+<div class="min-h-screen bg-gray-50">
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+        <div class="max-w-4xl mx-auto px-6 py-14 text-center">
+            <h1 class="text-4xl font-bold">{{ site.title }}</h1>
+            {% if site.tagline %}<p class="text-blue-100 mt-2">{{ site.tagline }}</p>{% endif %}
+        </div>
+    </header>
+    {% if site.ad_code %}<div class="max-w-4xl mx-auto px-6 py-4">{{ site.ad_code|safe }}</div>{% endif %}
+    <main class="max-w-4xl mx-auto px-6 py-10 flex gap-8">
+        <div class="flex-1">
+            {% for p in posts %}
+            <a href="{% url 'sites:post' site.slug p.slug %}" class="block bg-white rounded-2xl shadow-sm p-6 mb-4 hover:shadow-md transition">
+                <h2 class="text-xl font-semibold text-gray-900">{{ p.title }}</h2>
+                <p class="text-gray-400 text-sm mt-1">{{ p.created_at|date:"d.m.Y" }}</p>
+            </a>
+            {% empty %}
+            <p class="text-center text-gray-400 py-16">Hələ məqalə yoxdur.</p>
+            {% endfor %}
+        </div>
+        {% include 'sites/_widgets.html' %}
+    </main>
+</div>
+{% elif site.theme == 'sunset' %}
+<div class="min-h-screen bg-gradient-to-b from-orange-50 to-pink-50">
+    <header class="bg-gradient-to-r from-orange-400 to-pink-500 text-white">
+        <div class="max-w-4xl mx-auto px-6 py-14 text-center">
+            <h1 class="text-4xl font-bold">{{ site.title }}</h1>
+            {% if site.tagline %}<p class="text-orange-100 mt-2">{{ site.tagline }}</p>{% endif %}
+        </div>
+    </header>
+    {% if site.ad_code %}<div class="max-w-4xl mx-auto px-6 py-4">{{ site.ad_code|safe }}</div>{% endif %}
+    <main class="max-w-4xl mx-auto px-6 py-10 flex gap-8">
+        <div class="flex-1">
+            {% for p in posts %}
+            <a href="{% url 'sites:post' site.slug p.slug %}" class="block bg-white rounded-2xl shadow-sm p-6 mb-4 hover:shadow-md transition">
+                <h2 class="text-xl font-semibold text-gray-900">{{ p.title }}</h2>
+                <p class="text-gray-400 text-sm mt-1">{{ p.created_at|date:"d.m.Y" }}</p>
+            </a>
+            {% empty %}
+            <p class="text-center text-gray-400 py-16">Hələ məqalə yoxdur.</p>
+            {% endfor %}
+        </div>
+        {% include 'sites/_widgets.html' %}
+    </main>
+</div>
+{% elif site.theme == 'forest' %}
+<div class="min-h-screen bg-emerald-50">
+    <header class="bg-gradient-to-r from-green-700 to-emerald-500 text-white">
+        <div class="max-w-4xl mx-auto px-6 py-14 text-center">
+            <h1 class="text-4xl font-bold">{{ site.title }}</h1>
+            {% if site.tagline %}<p class="text-emerald-100 mt-2">{{ site.tagline }}</p>{% endif %}
+        </div>
+    </header>
+    {% if site.ad_code %}<div class="max-w-4xl mx-auto px-6 py-4">{{ site.ad_code|safe }}</div>{% endif %}
+    <main class="max-w-4xl mx-auto px-6 py-10 flex gap-8">
+        <div class="flex-1">
+            {% for p in posts %}
+            <a href="{% url 'sites:post' site.slug p.slug %}" class="block bg-white rounded-2xl shadow-sm p-6 mb-4 hover:shadow-md transition">
+                <h2 class="text-xl font-semibold text-gray-900">{{ p.title }}</h2>
+                <p class="text-gray-400 text-sm mt-1">{{ p.created_at|date:"d.m.Y" }}</p>
+            </a>
+            {% empty %}
+            <p class="text-center text-gray-400 py-16">Hələ məqalə yoxdur.</p>
+            {% endfor %}
+        </div>
+        {% include 'sites/_widgets.html' %}
+    </main>
+</div>
+{% else %}
+<div class="min-h-screen bg-white">
+    <header class="border-b border-gray-100">
+        <div class="max-w-4xl mx-auto px-6 py-12 text-center">
+            <h1 class="text-4xl font-bold text-gray-900">{{ site.title }}</h1>
+            {% if site.tagline %}<p class="text-gray-500 mt-2">{{ site.tagline }}</p>{% endif %}
+        </div>
+    </header>
+    {% if site.ad_code %}<div class="max-w-4xl mx-auto px-6 py-4">{{ site.ad_code|safe }}</div>{% endif %}
+    <main class="max-w-4xl mx-auto px-6 py-10 flex gap-8">
+        <div class="flex-1">
+            {% for p in posts %}
+            <a href="{% url 'sites:post' site.slug p.slug %}" class="block border-b border-gray-100 py-6 hover:bg-gray-50 transition">
+                <h2 class="text-xl font-semibold text-gray-900">{{ p.title }}</h2>
+                <p class="text-gray-400 text-sm mt-1">{{ p.created_at|date:"d.m.Y" }}</p>
+            </a>
+            {% empty %}
+            <p class="text-center text-gray-400 py-16">Hələ məqalə yoxdur.</p>
+            {% endfor %}
+        </div>
+        {% include 'sites/_widgets.html' %}
+    </main>
+</div>
+{% endif %}
+{% endblock %}

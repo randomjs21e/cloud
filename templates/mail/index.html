@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}E-poçt - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold">E-poçt</h1>
+            <a href="{% url 'mail:compose' %}" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">✏️ Yeni e-poçt</a>
+        </div>
+
+        <div class="flex items-center gap-1 mb-6 bg-white rounded-xl border border-gray-100 p-1.5 overflow-x-auto">
+            <a href="{% url 'mail:inbox' %}" class="px-4 py-2 rounded-lg text-sm whitespace-nowrap {% if folder == 'inbox' %}bg-brand-600 text-white font-medium{% else %}text-gray-600 hover:bg-gray-100{% endif %}">📥 Gələnlər{% if unread_count %}<span class="ml-1.5 text-xs {% if folder == 'inbox' %}bg-white/20{% else %}bg-brand-600 text-white{% endif %} px-1.5 py-0.5 rounded-full">{{ unread_count }}</span>{% endif %}</a>
+            <a href="{% url 'mail:starred' %}" class="px-4 py-2 rounded-lg text-sm whitespace-nowrap {% if folder == 'starred' %}bg-brand-600 text-white font-medium{% else %}text-gray-600 hover:bg-gray-100{% endif %}">⭐ Ulduzlu</a>
+            <a href="{% url 'mail:sent' %}" class="px-4 py-2 rounded-lg text-sm whitespace-nowrap {% if folder == 'sent' %}bg-brand-600 text-white font-medium{% else %}text-gray-600 hover:bg-gray-100{% endif %}">📤 Göndərilənlər</a>
+            <a href="{% url 'mail:archived' %}" class="px-4 py-2 rounded-lg text-sm whitespace-nowrap {% if folder == 'archived' %}bg-brand-600 text-white font-medium{% else %}text-gray-600 hover:bg-gray-100{% endif %}">🗄️ Arxiv</a>
+            <a href="{% url 'mail:trash' %}" class="px-4 py-2 rounded-lg text-sm whitespace-nowrap {% if folder == 'trash' %}bg-brand-600 text-white font-medium{% else %}text-gray-600 hover:bg-gray-100{% endif %}">🗑️ Zibil</a>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            {% for e in emails %}
+            <a href="{% url 'mail:detail' e.id %}" class="flex items-center gap-3 px-5 py-3.5 border-b border-gray-50 hover:bg-gray-50 {% if folder == 'inbox' and not e.recipient_links.first.is_read %}bg-brand-50/40{% endif %}">
+                <span class="text-lg">{% if folder == 'inbox' %}{% if e.recipient_links.first.is_starred %}⭐{% else %}📄{% endif %}{% else %}📤{% endif %}</span>
+                <div class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold shrink-0">
+                    {% if folder == 'inbox' %}{{ e.sender.username|slice:":1"|upper }}{% else %}{{ e.recipients.first.username|slice:":1"|upper }}{% endif %}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                        <span class="font-medium text-gray-900 truncate">{% if folder == 'inbox' %}{{ e.sender.get_full_name|default:e.sender.username }}{% else %}{% for r in e.recipients.all %}{{ r.username }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}</span>
+                        <span class="text-xs text-gray-400 shrink-0 ml-2">{{ e.sent_at|date:"d.m H:i" }}</span>
+                    </div>
+                    <div class="text-sm text-gray-500 truncate"><span class="font-medium text-gray-700">{{ e.subject|default:"(başlıqsız)" }}</span> — {{ e.body|truncatechars:60 }}</div>
+                </div>
+            </a>
+            {% empty %}
+            <div class="text-center py-16 text-gray-400">
+                <div class="text-5xl mb-3">📭</div>
+                Bu qovluq boşdur.
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+{% endblock %}

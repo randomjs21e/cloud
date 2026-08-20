@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}{{ meeting.title }} - Görüş{% endblock %}
+{% block content %}
+<style>
+    html, body { height: 100%; margin: 0; }
+    body { overflow: hidden; }
+    .meet-wrap { position: fixed; inset: 0; display: flex; flex-direction: column; z-index: 40; }
+    .meet-header { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .meet-stage { flex: 1; position: relative; min-height: 0; }
+    #jitsi-container { position: absolute; inset: 0; }
+    #jitsi-container iframe { width: 100% !important; height: 100% !important; border: 0; }
+</style>
+<div class="meet-wrap">
+    <div class="meet-header">
+        <div class="flex items-center gap-3">
+            <a href="{% url 'meet:index' %}" class="text-sm text-brand-600 hover:underline">← Görüşlər</a>
+            <a href="{% url 'chat:index' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100"><span class="w-5 text-center">💬</span> Chat</a>
+            <a href="{% url 'search:index' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100"><span class="w-5 text-center">🔍</span> Axtarış</a>
+            <h1 class="font-semibold text-gray-900">{{ meeting.title }}</h1>
+            <span class="text-xs text-gray-400 font-mono">{{ meeting.room }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="copyLink()" class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">🔗 Linki kopyala</button>
+            <a href="{% url 'meet:delete' meeting.id %}" class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-sm">🗑 Sil</a>
+        </div>
+    </div>
+    <div class="meet-stage">
+        <div id="jitsi-container"></div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://meet.jit.si/external_api.js"></script>
+<script>
+(function () {
+    var domain = 'meet.jit.si';
+    var options = {
+        roomName: '{{ meeting.room }}',
+        width: '100%',
+        height: '100%',
+        parentNode: document.getElementById('jitsi-container'),
+        userInfo: {
+            displayName: '{{ user.get_full_name|default:user.username|escapejs }}'
+        },
+        configOverwrite: {
+            disableDeepLinking: true,
+            prejoinPageEnabled: false
+        },
+        interfaceConfigOverwrite: {
+            SHOW_JITSI_WATERMARK: false,
+            SHOW_WATERMARK_FOR_GUESTS: false
+        }
+    };
+    var api = new JitsiMeetExternalAPI(domain, options);
+
+    window.copyLink = function () {
+        var url = window.location.origin + '{% url "meet:join" meeting.id %}';
+        navigator.clipboard.writeText(url).then(function () {
+            alert('Görüş linki kopyalandı!');
+        });
+    };
+})();
+</script>
+{% endblock %}

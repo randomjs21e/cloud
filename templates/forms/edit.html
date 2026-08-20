@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}{{ survey.title }} - Anket{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <a href="{% url 'forms:index' %}" class="text-sm text-brand-600 hover:underline">← Anketlər</a>
+                <h1 class="text-2xl font-bold mt-1">{{ survey.title }}</h1>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'forms:responses' survey.id %}" class="px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 text-sm font-medium">Cavablar ({{ survey.responses.count }})</a>
+                <button type="button" onclick="copyLink()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">🔗 Linki kopyala</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-4">
+                <div class="bg-white rounded-2xl border border-gray-100 p-5">
+                    <h2 class="font-semibold mb-3">Suallar</h2>
+                    {% for q in survey.questions.all %}
+                    <div class="flex items-start justify-between gap-3 py-3 border-b border-gray-50">
+                        <div class="min-w-0">
+                            <div class="font-medium text-sm">{{ q.text }} {% if q.required %}<span class="text-red-500">*</span>{% endif %}</div>
+                            <div class="text-xs text-gray-400 mt-0.5">{{ q.get_type_display }}{% if q.option_list %} · {{ q.option_list|join:", " }}{% endif %}</div>
+                        </div>
+                        <form method="post" action="{% url 'forms:edit' survey.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_question">
+                            <input type="hidden" name="qid" value="{{ q.id }}">
+                            <button type="submit" class="text-red-400 hover:text-red-600 text-sm">✕</button>
+                        </form>
+                    </div>
+                    {% empty %}
+                    <p class="text-sm text-gray-400 py-4">Hələ sual yoxdur. Aşağıdan əlavə edin.</p>
+                    {% endfor %}
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-100 p-5">
+                    <h2 class="font-semibold mb-3">Sual əlavə et</h2>
+                    <form method="post" action="{% url 'forms:edit' survey.id %}" class="space-y-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_question">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Sual mətni</label>
+                            <input type="text" name="qtext" required class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Növ</label>
+                                <select name="qtype" id="qtype" onchange="toggleOptions()" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                    <option value="text">Qısa mətn</option>
+                                    <option value="textarea">Uzun mətn</option>
+                                    <option value="choice">Tək seçim</option>
+                                    <option value="multi">Çox seçim</option>
+                                    <option value="rating">Qiymətləndirmə (1-5)</option>
+                                </select>
+                            </div>
+                            <label class="flex items-end gap-2 text-sm text-gray-700 pb-2">
+                                <input type="checkbox" name="qrequired" checked class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
+                                Məcburi
+                            </label>
+                        </div>
+                        <div id="options-wrap" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Seçimlər (hər sətirə bir)</label>
+                            <textarea name="qoptions" rows="3" placeholder="Seçim 1&#10;Seçim 2&#10;Seçim 3" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                        </div>
+                        <button type="submit" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Sual əlavə et</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-white rounded-2xl border border-gray-100 p-5">
+                    <h2 class="font-semibold mb-3">Anket linki</h2>
+                    <div class="text-xs text-gray-500 mb-2">Bu linki paylaşın. {% if survey.requires_account %}Doldurmaq üçün hesab tələb olunur.{% else %}Hesabsız doldurula bilər.{% endif %}</div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="survey-link" readonly value="{{ request.scheme }}://{{ request.get_host }}{% url 'forms:fill' survey.token %}" class="flex-1 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-xs">
+                        <button type="button" onclick="copyLink()" class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">📋</button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-100 p-5">
+                    <h2 class="font-semibold mb-3">Anket ayarları</h2>
+                    <form method="post" action="{% url 'forms:edit' survey.id %}" class="space-y-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_settings">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Başlıq</label>
+                            <input type="text" name="title" value="{{ survey.title }}" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Təsvir</label>
+                            <textarea name="description" rows="2" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">{{ survey.description }}</textarea>
+                        </div>
+                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" name="requires_account" {% if survey.requires_account %}checked{% endif %} class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
+                            Hesab tələb olunsun
+                        </label>
+                        <button type="submit" class="w-full px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium">Yadda saxla</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+    window.toggleOptions = function () {
+        var v = document.getElementById('qtype').value;
+        document.getElementById('options-wrap').classList.toggle('hidden', v !== 'choice' && v !== 'multi');
+    };
+    window.copyLink = function () {
+        var el = document.getElementById('survey-link');
+        el.select();
+        navigator.clipboard.writeText(el.value).then(function () {
+            alert('Link kopyalandı!');
+        });
+    };
+})();
+</script>
+{% endblock %}

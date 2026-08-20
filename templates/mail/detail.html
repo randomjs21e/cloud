@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}{{ email.subject|default:"E-poçt" }} - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center gap-1 mb-6 bg-white rounded-xl border border-gray-100 p-1.5 overflow-x-auto">
+            <a href="{% url 'mail:inbox' %}" class="px-4 py-2 rounded-lg text-sm whitespace-nowrap text-gray-600 hover:bg-gray-100">📥 Gələnlər</a>
+            <a href="{% url 'mail:starred' %}" class="px-4 py-2 rounded-lg text-sm whitespace-nowrap text-gray-600 hover:bg-gray-100">⭐ Ulduzlu</a>
+            <a href="{% url 'mail:sent' %}" class="px-4 py-2 rounded-lg text-sm whitespace-nowrap text-gray-600 hover:bg-gray-100">📤 Göndərilənlər</a>
+            <a href="{% url 'mail:archived' %}" class="px-4 py-2 rounded-lg text-sm whitespace-nowrap text-gray-600 hover:bg-gray-100">🗄️ Arxiv</a>
+            <a href="{% url 'mail:trash' %}" class="px-4 py-2 rounded-lg text-sm whitespace-nowrap text-gray-600 hover:bg-gray-100">🗑️ Zibil</a>
+        </div>
+        <a href="{% url 'mail:inbox' %}" class="text-sm text-brand-600 hover:underline">← Gələnlər</a>
+        <div class="bg-white rounded-2xl border border-gray-100 p-6 mt-4 max-w-3xl">
+            <div class="flex items-start justify-between mb-4">
+                <h1 class="text-xl font-bold break-all">{{ email.subject|default:"(başlıqsız)" }}</h1>
+                <div class="flex gap-2 shrink-0">
+                    {% if link %}
+                    <form method="post" action="{% url 'mail:action' email.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="star">
+                        <button type="submit" class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">{% if link.is_starred %}⭐{% else %}☆{% endif %}</button>
+                    </form>
+                    <form method="post" action="{% url 'mail:action' email.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="{% if link.is_archived %}unarchive{% else %}archive{% endif %}">
+                        <button type="submit" class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">🗄️</button>
+                    </form>
+                    <form method="post" action="{% url 'mail:action' email.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <button type="submit" class="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-sm">🗑️</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="flex items-center gap-3 pb-4 border-b border-gray-100 mb-4">
+                <div class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold">{{ email.sender.username|slice:":1"|upper }}</div>
+                <div>
+                    <div class="font-medium text-gray-900">{{ email.sender.get_full_name|default:email.sender.username }} <span class="text-gray-400 text-sm">&lt;{{ email.sender.email }}&gt;</span></div>
+                    <div class="text-xs text-gray-400">Alıcılar: {% for r in email.recipients.all %}{{ r.username }}{% if not forloop.last %}, {% endif %}{% endfor %} · {{ email.sent_at|date:"d.m.Y H:i" }}</div>
+                </div>
+            </div>
+            <div class="text-gray-800 prose max-w-none">{{ email.body|safe }}</div>
+        </div>
+    </main>
+</div>
+{% endblock %}

@@ -1,0 +1,409 @@
+{% extends 'base.html' %}
+{% block title %}{{ f.title }} - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'office:index' %}" class="text-sm text-brand-600 hover:underline">← Ofis</a>
+                <span class="text-xl">{% if f.type == 'doc' %}📄{% elif f.type == 'sheet' %}📊{% else %}📽️{% endif %}</span>
+                <h1 class="text-xl font-bold break-words">{{ f.title }}</h1>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'office:export' f.id %}" class="px-3 py-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-sm">⬇ Export</a>
+                <a href="{% url 'office:delete' f.id %}" class="px-3 py-1.5 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 text-sm">Sil</a>
+            </div>
+        </div>
+
+        <form method="post" id="edit-form" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="content" id="content-input" value="{{ f.content }}">
+            <div class="bg-white rounded-2xl border border-gray-100 p-6">
+                {% if f.type == 'doc' %}
+                <div id="editor" class="min-h-[60vh]"></div>
+                {% elif f.type == 'sheet' %}
+                <div id="sheet" class="h-[70vh]"></div>
+                {% else %}
+                <div class="flex gap-4">
+                    <div class="w-56 shrink-0">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold text-gray-500">Slaydlar</span>
+                            <button type="button" onclick="addSlide()" class="text-xs px-2 py-1 rounded-lg bg-brand-600 text-white hover:bg-brand-700">+ Əlavə et</button>
+                        </div>
+                        <div id="slide-list" class="space-y-1 max-h-[50vh] overflow-y-auto pr-1"></div>
+                    </div>
+                    <div class="flex-1 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span id="slide-num" class="text-xs font-semibold text-gray-500"></span>
+                            <div class="flex gap-1">
+                                <button type="button" id="slide-up" onclick="moveSlide(-1)" class="px-2 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">↑</button>
+                                <button type="button" id="slide-down" onclick="moveSlide(1)" class="px-2 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">↓</button>
+                                <button type="button" onclick="removeSlide()" class="px-2 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-sm">🗑</button>
+                                <button type="button" onclick="present()" class="px-2 py-1 rounded-lg bg-gray-900 text-white hover:bg-gray-700 text-sm">▶ Təqdimat</button>
+                            </div>
+                        </div>
+                        <div id="slide-editor" class="space-y-3">
+                            <input type="text" id="slide-title" placeholder="Başlıq" oninput="updateField('title', this.value)" class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-semibold text-lg">
+                            <textarea id="slide-body" rows="4" placeholder="Mətn" oninput="updateField('body', this.value)" class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 mb-1">Şəkil (URL)</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="slide-image" placeholder="https://... şəkil və ya GIF linki" oninput="updateField('image', this.value)" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                                    <button type="button" onclick="pickImage()" class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">📁</button>
+                                </div>
+                                <input type="file" id="slide-image-file" accept="image/*" class="hidden" onchange="uploadImage(this)">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 mb-1">Başlıq ölçüsü</label>
+                                    <select id="slide-title-size" onchange="updateField('titleSize', this.value)" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm">
+                                        <option value="24">Kiçik (24)</option>
+                                        <option value="32">Orta (32)</option>
+                                        <option value="40">Böyük (40)</option>
+                                        <option value="52">Çox böyük (52)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 mb-1">Mətn ölçüsü</label>
+                                    <select id="slide-body-size" onchange="updateField('bodySize', this.value)" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm">
+                                        <option value="16">Kiçik (16)</option>
+                                        <option value="20">Orta (20)</option>
+                                        <option value="24">Böyük (24)</option>
+                                        <option value="30">Çox böyük (30)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 mb-1">Başlıq rəngi</label>
+                                    <input type="color" id="slide-title-color" onchange="updateField('titleColor', this.value)" class="w-full h-8 rounded border border-gray-200 cursor-pointer">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 mb-1">Mətn rəngi</label>
+                                    <input type="color" id="slide-body-color" onchange="updateField('bodyColor', this.value)" class="w-full h-8 rounded border border-gray-200 cursor-pointer">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 mb-1">Fon rəngi</label>
+                                    <input type="color" id="slide-bg" onchange="updateField('bg', this.value)" class="w-full h-8 rounded border border-gray-200 cursor-pointer">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 mb-1">Hizalama</label>
+                                    <div class="flex gap-1">
+                                        <button type="button" onclick="setAlign('left')" class="px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm" title="Sol">⬅</button>
+                                        <button type="button" onclick="setAlign('center')" class="px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm" title="Mərkəz">⬌</button>
+                                        <button type="button" onclick="setAlign('right')" class="px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm" title="Sağ">➡</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 mb-1">Animasiya</label>
+                                    <select id="slide-animation" onchange="updateField('animation', this.value)" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm">
+                                        <option value="fade">Fade</option>
+                                        <option value="slide">Sürüşmə</option>
+                                        <option value="zoom">Zoom</option>
+                                        <option value="flip">Flip</option>
+                                        <option value="bounce">Bounce</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border border-gray-200 rounded-xl overflow-hidden">
+                            <div class="px-3 py-1.5 bg-gray-50 text-xs font-semibold text-gray-500 border-b border-gray-200">Canlı preview</div>
+                            <div id="slide-preview" class="aspect-video flex flex-col items-center justify-center text-center p-6 relative overflow-hidden">
+                                <img id="preview-image" class="absolute inset-0 w-full h-full object-cover hidden">
+                                <div class="relative z-10">
+                                    <h1 id="preview-title" class="font-bold text-white mb-2"></h1>
+                                    <p id="preview-body" class="text-white/80"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="present-overlay" class="hidden fixed inset-0 z-50 bg-black">
+                    <div id="present-stage" class="w-full h-full"></div>
+                    <button type="button" onclick="closePresent()" class="absolute top-4 right-4 text-white text-3xl hover:text-gray-300">&times;</button>
+                    <button type="button" onclick="presentNav(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300">‹</button>
+                    <button type="button" onclick="presentNav(1)" class="absolute right-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300">›</button>
+                    <div id="present-counter" class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm"></div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="px-5 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-medium">💾 Yadda saxla</button>
+                <a href="{% url 'office:index' %}" class="px-5 py-2.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 font-medium">Ləğv et</a>
+            </div>
+        </form>
+    </main>
+</div>
+{% endblock %}
+{% block extra_js %}
+{% if f.type == 'doc' %}
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
+<script>
+(function () {
+    var contentInput = document.getElementById('content-input');
+    var quill = new Quill('#editor', {
+        theme: 'snow',
+        placeholder: 'Sənəd yazın...',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                [{ 'align': [] }],
+                ['blockquote', 'code-block'],
+                ['link', 'image'],
+                ['clean']
+            ]
+        }
+    });
+    if (contentInput.value) {
+        quill.clipboard.dangerouslyPasteHTML(contentInput.value);
+    }
+    document.getElementById('edit-form').addEventListener('submit', function () {
+        contentInput.value = quill.root.innerHTML;
+    });
+})();
+</script>
+{% elif f.type == 'sheet' %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet@2.1.13/dist/plugins/css/pluginsCss.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet@2.1.13/dist/plugins/plugins.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet@2.1.13/dist/css/luckysheet.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet@2.1.13/dist/assets/iconfont/iconfont.css">
+<script src="https://cdn.jsdelivr.net/npm/luckysheet@2.1.13/dist/plugins/js/plugin.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luckysheet@2.1.13/dist/luckysheet.umd.js"></script>
+<script>
+(function () {
+    var contentInput = document.getElementById('content-input');
+    var data = [];
+    try { data = JSON.parse(contentInput.value); } catch (e) { data = []; }
+    if (!Array.isArray(data)) data = [];
+
+    function toCelldata(rows) {
+        var celldata = [];
+        for (var r = 0; r < rows.length; r++) {
+            var row = rows[r] || [];
+            for (var c = 0; c < row.length; c++) {
+                var v = row[c];
+                if (v !== null && v !== undefined && v !== '') {
+                    celldata.push({ r: r, c: c, v: { v: v } });
+                }
+            }
+        }
+        return celldata;
+    }
+    function fromCelldata(sheets) {
+        var out = [];
+        if (sheets && sheets[0] && sheets[0].celldata) {
+            var maxR = 0, maxC = 0;
+            sheets[0].celldata.forEach(function (cell) {
+                if (cell.r > maxR) maxR = cell.r;
+                if (cell.c > maxC) maxC = cell.c;
+            });
+            for (var r = 0; r <= maxR; r++) out.push([]);
+            sheets[0].celldata.forEach(function (cell) {
+                if (!out[cell.r]) out[cell.r] = [];
+                out[cell.r][cell.c] = (cell.v && cell.v.v !== undefined) ? cell.v.v : cell.v;
+            });
+        }
+        return out;
+    }
+
+    luckysheet.create({
+        container: 'sheet',
+        lang: 'en',
+        data: [{ name: 'Sheet1', celldata: toCelldata(data) }],
+        showinfobar: true,
+        showtoolbar: true,
+        showsheetbar: true,
+        showstatisticBar: true,
+        allowEdit: true,
+        enableAddRow: true,
+        enableAddBackTop: true,
+        row: 40,
+        column: 20,
+        defaultFontSize: 13,
+    });
+
+    document.getElementById('edit-form').addEventListener('submit', function () {
+        var sheets = luckysheet.getdatas();
+        contentInput.value = JSON.stringify(fromCelldata(sheets));
+    });
+})();
+</script>
+{% else %}
+<script>
+(function () {
+    var contentInput = document.getElementById('content-input');
+    var slides = [];
+    try { slides = JSON.parse(contentInput.value); } catch (e) { slides = []; }
+    if (!slides.length) slides = [{ title: 'Başlıq', body: 'Mətn', bg: '#1f2937', titleColor: '#ffffff', bodyColor: '#ffffff', titleSize: '40', bodySize: '20', align: 'center', animation: 'fade' }];
+    var current = 0;
+
+    var listEl = document.getElementById('slide-list');
+    var previewEl = document.getElementById('slide-preview');
+    var previewTitle = document.getElementById('preview-title');
+    var previewBody = document.getElementById('preview-body');
+    var previewImage = document.getElementById('preview-image');
+
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderList() {
+        listEl.innerHTML = '';
+        slides.forEach(function (s, i) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'w-full text-left px-3 py-2 rounded-lg text-sm ' + (i === current ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-700 hover:bg-gray-100');
+            btn.innerHTML = '<div class="truncate">' + (esc(s.title) || 'Slayd ' + (i + 1)) + '</div><div class="text-xs text-gray-400">Slayd ' + (i + 1) + '</div>';
+            btn.onclick = function () { current = i; renderAll(); };
+            listEl.appendChild(btn);
+        });
+    }
+
+    function renderEditor() {
+        var s = slides[current];
+        document.getElementById('slide-title').value = s.title || '';
+        document.getElementById('slide-body').value = s.body || '';
+        document.getElementById('slide-image').value = s.image || '';
+        document.getElementById('slide-bg').value = s.bg || '#1f2937';
+        document.getElementById('slide-title-color').value = s.titleColor || '#ffffff';
+        document.getElementById('slide-body-color').value = s.bodyColor || '#ffffff';
+        document.getElementById('slide-title-size').value = s.titleSize || '40';
+        document.getElementById('slide-body-size').value = s.bodySize || '20';
+        document.getElementById('slide-animation').value = s.animation || 'fade';
+        document.getElementById('slide-num').textContent = 'Slayd ' + (current + 1) + ' / ' + slides.length;
+        document.getElementById('slide-up').disabled = current === 0;
+        document.getElementById('slide-down').disabled = current === slides.length - 1;
+    }
+
+    function renderPreview() {
+        var s = slides[current];
+        previewEl.style.background = s.bg || '#1f2937';
+        previewTitle.textContent = s.title || '';
+        previewBody.textContent = s.body || '';
+        previewTitle.style.color = s.titleColor || '#ffffff';
+        previewBody.style.color = s.bodyColor || '#ffffff';
+        previewTitle.style.fontSize = (s.titleSize || '40') + 'px';
+        previewBody.style.fontSize = (s.bodySize || '20') + 'px';
+        previewEl.style.alignItems = s.align === 'left' ? 'flex-start' : (s.align === 'right' ? 'flex-end' : 'center');
+        previewEl.style.textAlign = s.align || 'center';
+        if (s.image) {
+            previewImage.src = s.image;
+            previewImage.classList.remove('hidden');
+        } else {
+            previewImage.classList.add('hidden');
+        }
+    }
+
+    function renderAll() {
+        renderList();
+        renderEditor();
+        renderPreview();
+        contentInput.value = JSON.stringify(slides);
+    }
+
+    window.addSlide = function () {
+        slides.push({ title: 'Yeni slayd', body: '', bg: '#1f2937', titleColor: '#ffffff', bodyColor: '#ffffff', titleSize: '40', bodySize: '20', align: 'center', animation: 'fade' });
+        current = slides.length - 1;
+        renderAll();
+    };
+    window.removeSlide = function () {
+        if (slides.length <= 1) return;
+        slides.splice(current, 1);
+        if (current >= slides.length) current = slides.length - 1;
+        renderAll();
+    };
+    window.moveSlide = function (dir) {
+        var t = current + dir;
+        if (t < 0 || t >= slides.length) return;
+        var tmp = slides[current]; slides[current] = slides[t]; slides[t] = tmp;
+        current = t;
+        renderAll();
+    };
+    window.updateField = function (field, value) {
+        slides[current][field] = value;
+        renderList();
+        renderPreview();
+        contentInput.value = JSON.stringify(slides);
+    };
+    window.setAlign = function (a) {
+        slides[current].align = a;
+        renderPreview();
+        contentInput.value = JSON.stringify(slides);
+    };
+    window.pickImage = function () {
+        document.getElementById('slide-image-file').click();
+    };
+    window.uploadImage = function (input) {
+        var file = input.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            slides[current].image = e.target.result;
+            document.getElementById('slide-image').value = e.target.result;
+            renderPreview();
+            contentInput.value = JSON.stringify(slides);
+        };
+        reader.readAsDataURL(file);
+    };
+    window.present = function () {
+        var overlay = document.getElementById('present-overlay');
+        var stage = document.getElementById('present-stage');
+        stage.innerHTML = '';
+        slides.forEach(function (s, i) {
+            var div = document.createElement('div');
+            div.className = 'present-slide anim-' + (s.animation || 'fade');
+            div.style.background = s.bg || '#1f2937';
+            div.style.alignItems = s.align === 'left' ? 'flex-start' : (s.align === 'right' ? 'flex-end' : 'center');
+            div.style.textAlign = s.align || 'center';
+            var img = s.image ? '<img src="' + esc(s.image) + '" class="present-img">' : '';
+            div.innerHTML = img +
+                '<h1 style="color:' + esc(s.titleColor || '#fff') + ';font-size:' + (s.titleSize || '40') + 'px">' + esc(s.title) + '</h1>' +
+                '<p style="color:' + esc(s.bodyColor || '#fff') + ';font-size:' + (s.bodySize || '20') + 'px">' + esc(s.body).replace(/\n/g, '<br>') + '</p>';
+            stage.appendChild(div);
+        });
+        presentIndex = 0;
+        showPresent(0);
+        overlay.classList.remove('hidden');
+    };
+    var presentIndex = 0;
+    function showPresent(i) {
+        var slidesEls = document.querySelectorAll('#present-stage .present-slide');
+        slidesEls.forEach(function (el, idx) {
+            el.classList.remove('active');
+            if (idx === i) {
+                el.classList.add('active');
+                el.classList.remove('anim-run');
+                void el.offsetWidth;
+                el.classList.add('anim-run');
+            }
+        });
+        document.getElementById('present-counter').textContent = (i + 1) + ' / ' + slidesEls.length;
+    }
+    window.presentNav = function (dir) {
+        var n = document.querySelectorAll('#present-stage .present-slide').length;
+        presentIndex = (presentIndex + dir + n) % n;
+        showPresent(presentIndex);
+    };
+    window.closePresent = function () {
+        document.getElementById('present-overlay').classList.add('hidden');
+    };
+
+    renderAll();
+    document.getElementById('edit-form').addEventListener('submit', function () {
+        contentInput.value = JSON.stringify(slides);
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

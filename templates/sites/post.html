@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}{{ post.title }} - {{ site.title }}{% endblock %}
+{% block content %}
+{% if site.theme == 'dark' %}
+<div class="min-h-screen bg-gray-900 text-gray-100">
+    <header class="border-b border-gray-800">
+        <div class="max-w-3xl mx-auto px-6 py-10">
+            <a href="{% url 'sites:public' site.slug %}" class="text-gray-400 hover:text-gray-200 text-sm">← {{ site.title }}</a>
+            <h1 class="text-3xl font-bold mt-3">{{ post.title }}</h1>
+            <p class="text-gray-500 text-sm mt-2">{{ post.created_at|date:"d.m.Y H:i" }}</p>
+        </div>
+    </header>
+    {% if site.ad_code %}<div class="max-w-3xl mx-auto px-6 py-4">{{ site.ad_code|safe }}</div>{% endif %}
+    <main class="max-w-3xl mx-auto px-6 py-10">
+        <div class="prose prose-invert max-w-none">{{ post.content|safe }}</div>
+        {% include 'sites/_comments.html' %}
+    </main>
+</div>
+{% else %}
+<div class="min-h-screen bg-white">
+    <header class="border-b border-gray-100">
+        <div class="max-w-3xl mx-auto px-6 py-10">
+            <a href="{% url 'sites:public' site.slug %}" class="text-gray-400 hover:text-gray-600 text-sm">← {{ site.title }}</a>
+            <h1 class="text-3xl font-bold text-gray-900 mt-3">{{ post.title }}</h1>
+            <p class="text-gray-400 text-sm mt-2">{{ post.created_at|date:"d.m.Y H:i" }}</p>
+        </div>
+    </header>
+    {% if site.ad_code %}<div class="max-w-3xl mx-auto px-6 py-4">{{ site.ad_code|safe }}</div>{% endif %}
+    <main class="max-w-3xl mx-auto px-6 py-10">
+        <div class="prose max-w-none">{{ post.content|safe }}</div>
+        {% include 'sites/_comments.html' %}
+    </main>
+</div>
+{% endif %}
+{% endblock %}

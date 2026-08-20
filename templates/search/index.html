@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Axtarış - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <h1 class="text-2xl font-bold mb-6">🔍 Axtarış</h1>
+        <form method="get" class="mb-4">
+            <div class="flex gap-2">
+                <input type="text" name="q" value="{{ q }}" placeholder="Məlumatlarınızı və ya interneti axtarın..." autofocus class="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <button type="submit" class="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium">🔍 Axtar</button>
+            </div>
+        </form>
+
+        <div class="flex items-center gap-1 mb-6 bg-white rounded-xl border border-gray-100 p-1.5 w-fit">
+            <a href="?q={{ q|urlencode }}&mode=all" class="px-4 py-2 rounded-lg text-sm {% if mode == 'all' %}bg-brand-600 text-white font-medium{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Hamısı</a>
+            <a href="?q={{ q|urlencode }}&mode=internal" class="px-4 py-2 rounded-lg text-sm {% if mode == 'internal' %}bg-brand-600 text-white font-medium{% else %}text-gray-600 hover:bg-gray-100{% endif %}">📁 Mənim məlumatlarım</a>
+            <a href="?q={{ q|urlencode }}&mode=web" class="px-4 py-2 rounded-lg text-sm {% if mode == 'web' %}bg-brand-600 text-white font-medium{% else %}text-gray-600 hover:bg-gray-100{% endif %}">🌐 İnternet</a>
+            <a href="?q={{ q|urlencode }}&mode=ai" class="px-4 py-2 rounded-lg text-sm {% if mode == 'ai' %}bg-brand-600 text-white font-medium{% else %}text-gray-600 hover:bg-gray-100{% endif %}">✨ AI cavabı</a>
+        </div>
+
+        {% if q %}
+        {% if mode == 'all' or mode == 'ai' %}
+        <div id="ai-answer" class="mb-6">
+            <div class="bg-white rounded-2xl border border-gray-100 p-5">
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-brand-600 flex items-center justify-center text-white text-sm">✨</div>
+                    <span class="font-semibold text-gray-900">CLX AI cavabı</span>
+                </div>
+                <div class="text-gray-400 text-sm flex items-center gap-2">
+                    <span class="inline-block w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></span>
+                    AI cavabı hazırlanır...
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if mode == 'all' or mode == 'web' %}
+        {% if web_results %}
+        <h2 class="font-semibold text-gray-700 mb-3">🌐 İnternet nəticələri</h2>
+        <div class="space-y-2 mb-6">
+            {% for r in web_results %}
+            <a href="{{ r.url }}" target="_blank" rel="noopener" class="block bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition">
+                <div class="text-sm text-gray-400 truncate">{{ r.url }}</div>
+                <div class="font-medium text-brand-600 hover:underline">{{ r.title }}</div>
+                {% if r.snippet %}<div class="text-sm text-gray-500 mt-1">{{ r.snippet }}</div>{% endif %}
+            </a>
+            {% endfor %}
+        </div>
+        {% elif web_error %}
+        <div class="bg-red-50 rounded-2xl border border-red-100 p-4 mb-6 text-sm text-red-600">{{ web_error }}</div>
+        {% endif %}
+        {% endif %}
+
+        {% if mode == 'all' or mode == 'internal' %}
+        {% if results %}
+        <h2 class="font-semibold text-gray-700 mb-3">📁 Məlumatlarınızda ({{ results|length }})</h2>
+        <div class="space-y-2">
+            {% for r in results %}
+            <a href="{{ r.url }}" class="flex items-start gap-3 bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition">
+                <span class="text-2xl shrink-0">{{ r.icon }}</span>
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 shrink-0">{{ r.type }}</span>
+                        <span class="font-medium text-gray-900 truncate">{{ r.title }}</span>
+                    </div>
+                    {% if r.snippet %}<div class="text-sm text-gray-500 mt-1 truncate">{{ r.snippet }}</div>{% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endif %}
+
+        {% if mode != 'ai' and not results and not web_results and not web_error %}
+        <div class="text-center py-16 text-gray-400">
+            <div class="text-5xl mb-3">🔍</div>
+            "{{ q }}" üçün heç nə tapılmadı.
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="text-center py-16 text-gray-400">
+            <div class="text-5xl mb-3">🔍</div>
+            Axtarmaq üçün yuxarıya söz yazın. Məlumatlarınızı, interneti axtarın və ya AI-dan cavab alın.
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if q and mode == 'all' or q and mode == 'ai' %}
+<script>
+(function () {
+    var box = document.getElementById('ai-answer');
+    if (!box) return;
+    var q = {{ q|escapejs }};
+    fetch('/search/ai/?q=' + encodeURIComponent(q), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.answer) {
+                box.innerHTML = '<div class="bg-white rounded-2xl border border-gray-100 p-5">' +
+                    '<div class="flex items-center gap-2 mb-3">' +
+                    '<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-brand-600 flex items-center justify-center text-white text-sm">✨</div>' +
+                    '<span class="font-semibold text-gray-900">CLX AI cavabı</span></div>' +
+                    '<div class="text-gray-800 whitespace-pre-wrap"></div></div>';
+                box.querySelector('.whitespace-pre-wrap').textContent = data.answer;
+            } else if (data.error) {
+                box.innerHTML = '<div class="bg-red-50 rounded-2xl border border-red-100 p-4 text-sm text-red-600">' + data.error + '</div>';
+            } else {
+                box.remove();
+            }
+        })
+        .catch(function () { box.remove(); });
+})();
+</script>
+{% endif %}
+{% endblock %}

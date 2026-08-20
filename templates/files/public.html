@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}{{ file.name }} - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div class="w-full max-w-md bg-white rounded-2xl border border-gray-100 p-8 text-center">
+        <div class="text-5xl mb-4">📄</div>
+        <h1 class="text-xl font-bold mb-2 break-all">{{ file.name }}</h1>
+        <p class="text-gray-500 text-sm mb-2">{{ file.size|filesizeformat }}</p>
+        <p class="text-gray-400 text-xs mb-6">Bu fayl sizinlə paylaşılıb.</p>
+        <a href="{% url 'files:public_download' file.share_token %}" class="inline-block px-6 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-medium">Faylı endir</a>
+    </div>
+</div>
+{% endblock %}

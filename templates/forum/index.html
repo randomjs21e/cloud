@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Forum - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold">Forum</h1>
+            <a href="{% url 'forum:chat' %}" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">💬 Ümumi chat</a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for c in categories %}
+            <a href="{% url 'forum:category' c.id %}" class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="text-3xl">{{ c.icon }}</span>
+                    <h3 class="font-semibold text-gray-900">{{ c.name }}</h3>
+                </div>
+                <p class="text-sm text-gray-500 mb-3">{{ c.description }}</p>
+                <div class="text-xs text-gray-400">{{ c.threads.count }} mövzu</div>
+            </a>
+            {% empty %}
+            <div class="col-span-full text-center py-16 text-gray-400">
+                <div class="text-5xl mb-3">💬</div>
+                Hələ kateqoriya yoxdur.
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+{% endblock %}

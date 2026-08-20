@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Chat - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold">Chat</h1>
+            <button type="button" onclick="openNewChat()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Yeni söhbət</button>
+        </div>
+
+        {% if conversations %}
+        <h2 class="font-semibold text-gray-700 mb-3">Fərdi söhbətlər</h2>
+        <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-8">
+            {% for conv, other in conversations %}
+            <a href="{% url 'chat:private' other.id %}" class="flex items-center gap-3 px-5 py-4 border-b border-gray-50 hover:bg-gray-50">
+                <div class="w-12 h-12 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-lg font-bold shrink-0">{{ other.username|slice:":1"|upper }}</div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                        <span class="font-medium text-gray-900 truncate">{{ other.get_full_name|default:other.username }}</span>
+                        {% with last=conv.messages.last %}
+                        {% if last %}<span class="text-xs text-gray-400 shrink-0 ml-2">{{ last.created_at|date:"H:i" }}</span>{% endif %}
+                        {% endwith %}
+                    </div>
+                    <div class="text-sm text-gray-500 truncate">
+                        {% with last=conv.messages.last %}
+                        {% if last %}{{ last.author.username }}: {{ last.body|default:"📎 Əlavə" }}{% else %}Söhbətə başlayın{% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not conversations %}
+        <div class="text-center py-16 text-gray-400">
+            <div class="text-5xl mb-3">💬</div>
+            Hələ söhbət yoxdur. "Yeni söhbət" düyməsi ilə başlayın.
+        </div>
+        {% endif %}
+    </main>
+</div>
+
+<div id="create-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Yeni söhbət</h3>
+            <button type="button" onclick="closeNewChat()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <div class="relative mb-3">
+            <input type="text" id="newchat-search" placeholder="İstifadəçi adını axtar..." autocomplete="off" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+        <div id="newchat-list" class="space-y-2 max-h-80 overflow-y-auto">
+            {% for u in other_users %}
+            <a href="{% url 'chat:private' u.id %}" data-name="{{ u.get_full_name|default:u.username|lower }}" data-username="{{ u.username|lower }}" class="newchat-item w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 border border-gray-100">
+                <div class="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold shrink-0">{{ u.username|slice:":1"|upper }}</div>
+                <div class="min-w-0">
+                    <div class="text-sm font-medium text-gray-900 truncate">{{ u.get_full_name|default:u.username }}</div>
+                    <div class="text-xs text-gray-500">@{{ u.username }}</div>
+                </div>
+            </a>
+            {% empty %}
+            <div class="text-center py-8 text-gray-400 text-sm">Söhbət edəcək başqa istifadəçi yoxdur.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+    var search = document.getElementById('newchat-search');
+    var list = document.getElementById('newchat-list');
+    var items = Array.prototype.slice.call(list.querySelectorAll('.newchat-item'));
+
+    window.openNewChat = function () {
+        document.getElementById('create-modal').classList.remove('hidden');
+        search.value = '';
+        filterUsers('');
+        search.focus();
+    };
+    window.closeNewChat = function () { document.getElementById('create-modal').classList.add('hidden'); };
+    document.getElementById('create-modal').addEventListener('click', function (e) { if (e.target === this) closeNewChat(); });
+
+    function filterUsers(q) {
+        q = q.trim().toLowerCase();
+        var visible = 0;
+        items.forEach(function (item) {
+            var match = !q || item.getAttribute('data-name').indexOf(q) >= 0 || item.getAttribute('data-username').indexOf(q) >= 0;
+            item.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        var empty = list.querySelector('.newchat-empty');
+        if (!empty && items.length) {
+            empty = document.createElement('div');
+            empty.className = 'newchat-empty text-center py-8 text-gray-400 text-sm';
+            empty.textContent = 'İstifadəçi tapılmadı';
+            list.appendChild(empty);
+        }
+        if (empty) empty.style.display = visible ? 'none' : '';
+    }
+    search.addEventListener('input', function () { filterUsers(search.value); });
+})();
+</script>
+{% endblock %}

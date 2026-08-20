@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block title %}Görüşlər - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold">Görüşlər</h1>
+            <button type="button" onclick="openCreate()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Yeni görüş</button>
+        </div>
+
+        {% if invited %}
+        <div class="mb-8">
+            <h2 class="font-semibold text-gray-700 mb-3">Sizi çağırıblar</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for inv in invited %}
+                <div class="bg-white rounded-2xl border border-brand-100 p-5">
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-3xl">📹</span>
+                        <div class="min-w-0">
+                            <h3 class="font-semibold text-gray-900 truncate">{{ inv.meeting.title }}</h3>
+                            <div class="text-xs text-gray-400">{{ inv.meeting.owner.username }} çağırıb</div>
+                        </div>
+                    </div>
+                    <a href="{% url 'meet:join' inv.meeting.id %}" class="block text-center px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">▶ Qoşul</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <h2 class="font-semibold text-gray-700 mb-3">Mənim görüşlərim</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for m in meetings %}
+            <div class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="text-3xl">📹</span>
+                    <div class="min-w-0">
+                        <h3 class="font-semibold text-gray-900 truncate">{{ m.title }}</h3>
+                        <div class="text-xs text-gray-400">{{ m.created_at|date:"d.m.Y H:i" }}</div>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-400 mb-4 font-mono truncate">{{ m.room }}</div>
+                <div class="flex gap-2">
+                    <a href="{% url 'meet:join' m.id %}" class="flex-1 text-center px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">▶ Qoşul</a>
+                    <a href="{% url 'meet:delete' m.id %}" class="px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-sm">🗑</a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-full text-center py-16 text-gray-400">
+                <div class="text-5xl mb-3">📹</div>
+                Hələ görüş yoxdur. Yenisini yaradın.
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+
+<div id="create-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Yeni görüş</h3>
+            <button type="button" onclick="closeCreate()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <form method="post" action="{% url 'meet:create' %}" class="space-y-3">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Görüşün adı</label>
+                <input type="text" name="title" required placeholder="Məsələn: Komanda görüşü" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">İstifadəçiləri çağır</label>
+                <div class="relative">
+                    <input type="text" id="user-search" placeholder="İstifadəçi adını yazın..." autocomplete="off" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <div id="user-suggestions" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto"></div>
+                </div>
+                <div id="tagged-users" class="flex flex-wrap gap-1.5 mt-2"></div>
+                <p class="text-xs text-gray-400 mt-1">Çağırılan istifadəçiyə bildiriş gedir.</p>
+            </div>
+            <button type="submit" class="w-full px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Yarat</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+var ALL_USERS = [
+    {% for u in other_users %}{ id: {{ u.id }}, name: '{{ u.get_full_name|default:u.username|escapejs }}', username: '{{ u.username|escapejs }}' },
+    {% endfor %}
+];
+(function () {
+    var selected = {};
+    var search = document.getElementById('user-search');
+    var suggestions = document.getElementById('user-suggestions');
+    var tagged = document.getElementById('tagged-users');
+
+    window.openCreate = function () { document.getElementById('create-modal').classList.remove('hidden'); };
+    window.closeCreate = function () { document.getElementById('create-modal').classList.add('hidden'); };
+    document.getElementById('create-modal').addEventListener('click', function (e) { if (e.target === this) closeCreate(); });
+
+    function renderTagged() {
+        tagged.innerHTML = '';
+        Object.keys(selected).forEach(function (id) {
+            var u = selected[id];
+            var chip = document.createElement('span');
+            chip.className = 'inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-50 text-brand-700 text-xs';
+            chip.innerHTML = u.name + ' <button type="button" onclick="removeTag(' + id + ')" class="text-brand-500 hover:text-red-500">&times;</button>';
+            var hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'invitees';
+            hidden.value = id;
+            chip.appendChild(hidden);
+            tagged.appendChild(chip);
+        });
+    }
+    window.removeTag = function (id) {
+        delete selected[id];
+        renderTagged();
+    };
+    window.addTag = function (id) {
+        var u = ALL_USERS.find(function (x) { return x.id === id; });
+        if (u && !selected[id]) {
+            selected[id] = u;
+            renderTagged();
+        }
+        search.value = '';
+        suggestions.classList.add('hidden');
+    };
+
+    search.addEventListener('input', function () {
+        var q = search.value.trim().toLowerCase();
+        suggestions.innerHTML = '';
+        if (!q) { suggestions.classList.add('hidden'); return; }
+        var matches = ALL_USERS.filter(function (u) {
+            return !selected[u.id] && (u.name.toLowerCase().indexOf(q) >= 0 || u.username.toLowerCase().indexOf(q) >= 0);
+        });
+        if (!matches.length) {
+            suggestions.innerHTML = '<div class="px-3 py-2 text-sm text-gray-400">İstifadəçi tapılmadı</div>';
+            suggestions.classList.remove('hidden');
+            return;
+        }
+        matches.forEach(function (u) {
+            var item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'w-full text-left px-3 py-2 text-sm hover:bg-gray-50';
+            item.innerHTML = '<span class="font-medium">' + u.name + '</span> <span class="text-gray-400">@' + u.username + '</span>';
+            item.onclick = function () { addTag(u.id); };
+            suggestions.appendChild(item);
+        });
+        suggestions.classList.remove('hidden');
+    });
+    search.addEventListener('blur', function () {
+        setTimeout(function () { suggestions.classList.add('hidden'); }, 150);
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}Fotolar - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    <!-- Sidebar -->
+    {% include 'partials/sidebar.html' %}
+
+    <!-- Main -->
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold">Fotolar</h1>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="openAlbumCreate()" class="px-4 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-sm font-medium">📁 Yeni albom</button>
+                <form method="post" action="{% url 'files:photos_upload' %}" enctype="multipart/form-data" class="flex items-center gap-2">
+                    {% csrf_token %}
+                    <input type="file" name="file" accept="image/*" multiple required class="text-sm">
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Şəkil yüklə</button>
+                </form>
+            </div>
+        </div>
+
+        {% if albums %}
+        <h2 class="font-semibold text-gray-700 mb-3">Albomlar</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-8">
+            {% for a in albums %}
+            <a href="{% url 'files:album' a.id %}" class="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 hover:opacity-90 transition">
+                {% with first=a.photos.first %}
+                {% if first %}
+                <img src="{{ first.file.file.url }}" alt="{{ a.name }}" class="w-full h-full object-cover" loading="lazy">
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center text-4xl text-gray-300">📁</div>
+                {% endif %}
+                {% endwith %}
+                <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                    <div class="text-white font-medium truncate">{{ a.name }}</div>
+                    <div class="text-white/70 text-xs">{{ a.photos.count }} şəkil</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if photos %}
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {% for p in photos %}
+            <button type="button" onclick="openLightbox({{ forloop.counter0 }})" class="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 hover:opacity-90 transition">
+                <img src="{{ p.file.url }}" alt="{{ p.name }}" class="w-full h-full object-cover" loading="lazy">
+                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-end justify-end p-2 opacity-0 group-hover:opacity-100">
+                    <a href="{% url 'files:download' p.id %}" onclick="event.stopPropagation()" class="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center text-gray-700 hover:bg-white" title="Endir">⬇</a>
+                </div>
+            </button>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-24">
+            <div class="text-6xl mb-4">🖼️</div>
+            <p class="text-gray-400 mb-4">Hələ foto yoxdur. Şəkil yükləyin.</p>
+        </div>
+        {% endif %}
+    </main>
+</div>
+
+<!-- Album create modal -->
+<div id="album-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Yeni albom</h3>
+            <button type="button" onclick="closeAlbumCreate()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <form method="post" action="{% url 'files:album_create' %}" class="space-y-3">
+            {% csrf_token %}
+            <input type="text" name="name" required placeholder="Albom adı" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <button type="submit" class="w-full px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Yarat</button>
+        </form>
+    </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+    <button type="button" onclick="closeLightbox()" class="absolute top-4 right-4 text-white text-3xl hover:text-gray-300">&times;</button>
+    <button type="button" onclick="prevPhoto()" class="absolute left-4 text-white text-4xl hover:text-gray-300">‹</button>
+    <button type="button" onclick="nextPhoto()" class="absolute right-4 text-white text-4xl hover:text-gray-300">›</button>
+    <div class="max-w-4xl max-h-full">
+        <img id="lightbox-img" src="" alt="" class="max-w-full max-h-[80vh] object-contain rounded-lg">
+        <div class="flex items-center justify-between mt-3 text-white">
+            <div id="lightbox-name" class="text-sm truncate"></div>
+            <div class="flex gap-2">
+                <a id="lightbox-office" href="#" class="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-sm">📝 Office-də aç</a>
+                <a id="lightbox-download" href="#" class="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-sm">⬇ Endir</a>
+                <a id="lightbox-delete" href="#" class="px-3 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-sm">🗑 Sil</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+    var photos = [
+        {% for p in photos %}
+        { url: '{{ p.file.url }}', name: '{{ p.name|escapejs }}', download: '{% url 'files:download' p.id %}', del: '{% url 'files:delete' p.id %}', office: '{% url 'office:open_file' p.id %}' },
+        {% endfor %}
+    ];
+    var current = 0;
+
+    window.openAlbumCreate = function () { document.getElementById('album-modal').classList.remove('hidden'); };
+    window.closeAlbumCreate = function () { document.getElementById('album-modal').classList.add('hidden'); };
+    document.getElementById('album-modal').addEventListener('click', function (e) { if (e.target === this) closeAlbumCreate(); });
+
+    window.openLightbox = function (i) {
+        current = i;
+        render();
+        document.getElementById('lightbox').classList.remove('hidden');
+    };
+    window.closeLightbox = function () {
+        document.getElementById('lightbox').classList.add('hidden');
+    };
+    window.prevPhoto = function () {
+        current = (current - 1 + photos.length) % photos.length;
+        render();
+    };
+    window.nextPhoto = function () {
+        current = (current + 1) % photos.length;
+        render();
+    };
+    function render() {
+        var p = photos[current];
+        document.getElementById('lightbox-img').src = p.url;
+        document.getElementById('lightbox-img').alt = p.name;
+        document.getElementById('lightbox-name').textContent = p.name;
+        document.getElementById('lightbox-download').href = p.download;
+        document.getElementById('lightbox-delete').href = p.del;
+        document.getElementById('lightbox-office').href = p.office;
+    }
+    document.getElementById('lightbox').addEventListener('click', function (e) {
+        if (e.target === this) closeLightbox();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (document.getElementById('lightbox').classList.contains('hidden')) return;
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') prevPhoto();
+        if (e.key === 'ArrowRight') nextPhoto();
+    });
+})();
+</script>
+{% endblock %}

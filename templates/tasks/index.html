@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Tapşırıqlar - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold">✅ Tapşırıqlar</h1>
+            <button type="button" onclick="openListCreate()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Yeni siyahı</button>
+        </div>
+
+        <div class="flex gap-6">
+            <div class="w-64 shrink-0">
+                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                    {% for tl in lists %}
+                    <a href="{% url 'tasks:list' tl.id %}" class="flex items-center justify-between px-4 py-3 border-b border-gray-50 hover:bg-gray-50 {% if current and current.id == tl.id %}bg-brand-50{% endif %}">
+                        <span class="text-sm font-medium text-gray-800 truncate">{{ tl.name }}</span>
+                        <span class="text-xs text-gray-400">{{ tl.tasks.count }}</span>
+                    </a>
+                    {% empty %}
+                    <div class="px-4 py-8 text-center text-gray-400 text-sm">Hələ siyahı yoxdur.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="flex-1">
+                {% if current %}
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold">{{ current.name }}</h2>
+                    <a href="{% url 'tasks:list_delete' current.id %}" class="text-sm text-red-500 hover:underline">Siyahını sil</a>
+                </div>
+
+                <form method="post" action="{% url 'tasks:task_create' current.id %}" class="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
+                    {% csrf_token %}
+                    <div class="flex gap-2">
+                        <input type="text" name="title" required placeholder="Yeni tapşırıq..." class="flex-1 px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <input type="date" name="due_date" class="px-3 py-2 rounded-lg border border-gray-200 text-sm">
+                        <select name="priority" class="px-3 py-2 rounded-lg border border-gray-200 text-sm">
+                            <option value="low">🟢 Aşağı</option>
+                            <option value="med" selected>🟡 Orta</option>
+                            <option value="high">🔴 Yüksək</option>
+                        </select>
+                        <button type="submit" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Əlavə et</button>
+                    </div>
+                    <input type="text" name="notes" placeholder="Qeyd (istəyə bağlı)" class="w-full mt-2 px-4 py-2 rounded-lg border border-gray-200 text-sm">
+                </form>
+
+                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                    {% for t in tasks %}
+                    <div class="flex items-center gap-3 px-5 py-3.5 border-b border-gray-50 hover:bg-gray-50 {% if t.done %}opacity-50{% endif %}">
+                        <a href="{% url 'tasks:task_toggle' t.id %}" class="w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 {% if t.done %}bg-green-500 border-green-500 text-white{% else %}border-gray-300 hover:border-brand-500{% endif %}">
+                            {% if t.done %}✓{% endif %}
+                        </a>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-medium text-gray-900 {% if t.done %}line-through{% endif %} truncate">{{ t.title }}</div>
+                            {% if t.notes %}<div class="text-xs text-gray-400 truncate">{{ t.notes }}</div>{% endif %}
+                        </div>
+                        <span class="text-xs px-2 py-0.5 rounded-full {% if t.priority == 'high' %}bg-red-50 text-red-600{% elif t.priority == 'low' %}bg-green-50 text-green-600{% else %}bg-yellow-50 text-yellow-600{% endif %}">
+                            {% if t.priority == 'high' %}🔴{% elif t.priority == 'low' %}🟢{% else %}🟡{% endif %}
+                        </span>
+                        {% if t.due_date %}<span class="text-xs text-gray-400 shrink-0">{{ t.due_date|date:"d.m.Y" }}</span>{% endif %}
+                        <a href="{% url 'tasks:task_delete' t.id %}" class="text-gray-300 hover:text-red-500 shrink-0" title="Sil">🗑</a>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-12 text-gray-400">
+                        <div class="text-4xl mb-2">📝</div>
+                        Bu siyahıda tapşırıq yoxdur.
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-24 text-gray-400">
+                    <div class="text-6xl mb-4">✅</div>
+                    <p class="mb-2">Tapşırıq siyahısı yaradın.</p>
+                    <button type="button" onclick="openListCreate()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Yeni siyahı</button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- List create modal -->
+<div id="list-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Yeni siyahı</h3>
+            <button type="button" onclick="closeListCreate()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <form method="post" action="{% url 'tasks:list_create' %}" class="space-y-3">
+            {% csrf_token %}
+            <input type="text" name="name" required placeholder="Siyahı adı" class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <button type="submit" class="w-full px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Yarat</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+    window.openListCreate = function () { document.getElementById('list-modal').classList.remove('hidden'); };
+    window.closeListCreate = function () { document.getElementById('list-modal').classList.add('hidden'); };
+    document.getElementById('list-modal').addEventListener('click', function (e) { if (e.target === this) closeListCreate(); });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Versiyalar - {{ file.name }}{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <a href="{% url 'files:index' %}" class="text-sm text-brand-600 hover:underline">← Fayllarım</a>
+        <h1 class="text-2xl font-bold mt-2 mb-1 break-all">🕘 {{ file.name }}</h1>
+        <p class="text-sm text-gray-500 mb-6">Versiya tarixçəsi</p>
+
+        <form method="post" action="{% url 'files:version_upload' file.id %}" enctype="multipart/form-data" class="bg-white rounded-2xl border border-gray-100 p-5 mb-6 max-w-2xl">
+            {% csrf_token %}
+            <div class="flex items-center gap-3">
+                <input type="file" name="file" required class="text-sm flex-1">
+                <input type="text" name="note" placeholder="Versiya qeydi (istəyə bağlı)" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm">
+                <button type="submit" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">+ Yeni versiya</button>
+            </div>
+        </form>
+
+        <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden max-w-2xl">
+            {% for v in versions %}
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-50 hover:bg-gray-50">
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">📄</span>
+                    <div>
+                        <div class="font-medium text-gray-900">Versiya {{ forloop.revcounter }}</div>
+                        <div class="text-xs text-gray-400">{{ v.created_at|date:"d.m.Y H:i" }}{% if v.note %} · {{ v.note }}{% endif %}</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-gray-400">{{ v.size|filesizeformat }}</span>
+                    <a href="{% url 'files:version_download' file.id v.id %}" class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium">⬇ Endir</a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-12 text-gray-400">
+                <div class="text-4xl mb-2">🕘</div>
+                Hələ versiya yoxdur. Yuxarıdan yeni versiya əlavə edin.
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+{% endblock %}

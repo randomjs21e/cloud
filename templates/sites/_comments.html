@@ -1,0 +1,51 @@
+{% if site.theme == 'dark' %}
+<div class="mt-12 border-t border-gray-800 pt-8">
+    <h2 class="text-xl font-semibold mb-4">💬 Kommentlər ({{ comments|length }})</h2>
+    {% for c in comments %}
+    <div class="bg-gray-800 rounded-xl p-4 mb-3">
+        <div class="flex items-center gap-2 mb-1">
+            <div class="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold">{{ c.author.username|slice:":1"|upper }}</div>
+            <span class="font-medium text-sm">{{ c.author.get_full_name|default:c.author.username }}</span>
+            <span class="text-gray-500 text-xs">{{ c.created_at|date:"d.m.Y H:i" }}</span>
+        </div>
+        <p class="text-gray-300 text-sm">{{ c.body }}</p>
+    </div>
+    {% empty %}
+    <p class="text-gray-500 text-sm mb-4">Hələ komment yoxdur. İlk kommenti siz yazın.</p>
+    {% endfor %}
+    {% if user.is_authenticated %}
+    <form method="post" action="{% url 'sites:post_comment' site.slug post.slug %}" class="mt-4">
+        {% csrf_token %}
+        <textarea name="body" required rows="3" placeholder="Komment yazın..." class="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+        <button type="submit" class="mt-2 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Göndər</button>
+    </form>
+    {% else %}
+    <p class="text-gray-500 text-sm mt-4"><a href="{% url 'accounts:login' %}" class="text-brand-400 hover:underline">Daxil olun</a> və komment yazın.</p>
+    {% endif %}
+</div>
+{% else %}
+<div class="mt-12 border-t border-gray-100 pt-8">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">💬 Kommentlər ({{ comments|length }})</h2>
+    {% for c in comments %}
+    <div class="bg-gray-50 rounded-xl p-4 mb-3">
+        <div class="flex items-center gap-2 mb-1">
+            <div class="w-7 h-7 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-bold">{{ c.author.username|slice:":1"|upper }}</div>
+            <span class="font-medium text-sm text-gray-900">{{ c.author.get_full_name|default:c.author.username }}</span>
+            <span class="text-gray-400 text-xs">{{ c.created_at|date:"d.m.Y H:i" }}</span>
+        </div>
+        <p class="text-gray-700 text-sm">{{ c.body }}</p>
+    </div>
+    {% empty %}
+    <p class="text-gray-400 text-sm mb-4">Hələ komment yoxdur. İlk kommenti siz yazın.</p>
+    {% endfor %}
+    {% if user.is_authenticated %}
+    <form method="post" action="{% url 'sites:post_comment' site.slug post.slug %}" class="mt-4">
+        {% csrf_token %}
+        <textarea name="body" required rows="3" placeholder="Komment yazın..." class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+        <button type="submit" class="mt-2 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Göndər</button>
+    </form>
+    {% else %}
+    <p class="text-gray-400 text-sm mt-4"><a href="{% url 'accounts:login' %}" class="text-brand-600 hover:underline">Daxil olun</a> və komment yazın.</p>
+    {% endif %}
+</div>
+{% endif %}

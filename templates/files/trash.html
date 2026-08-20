@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Zibil qutusu - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <h1 class="text-2xl font-bold mb-6">🗑️ Zibil qutusu</h1>
+        <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-left text-gray-500">
+                    <tr>
+                        <th class="px-6 py-3 font-medium">Fayl</th>
+                        <th class="px-6 py-3 font-medium">Ölçü</th>
+                        <th class="px-6 py-3 font-medium">Silinmə tarixi</th>
+                        <th class="px-6 py-3 font-medium text-right">Əməliyyatlar</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for f in files %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-3"><div class="flex items-center gap-3"><span class="text-xl">📄</span><span class="font-medium break-all">{{ f.name }}</span></div></td>
+                        <td class="px-6 py-3 text-gray-500">{{ f.size|filesizeformat }}</td>
+                        <td class="px-6 py-3 text-gray-500">{{ f.trashed_at|date:"d.m.Y H:i" }}</td>
+                        <td class="px-6 py-3">
+                            <div class="flex gap-2 justify-end items-center">
+                                <a href="{% url 'files:restore' f.id %}" class="px-3 py-1.5 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 text-xs font-medium">↩ Bərpa et</a>
+                                <a href="{% url 'files:delete' f.id %}" class="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium">🗑 Tamamilə sil</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="px-6 py-16 text-center text-gray-400">
+                        <div class="text-5xl mb-3">🗑️</div>
+                        Zibil qutusu boşdur.
+                    </td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+{% endblock %}

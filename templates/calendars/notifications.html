@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Bildirişlər - Cloud{% endblock %}
+{% block content %}
+<div class="min-h-screen flex">
+    {% include 'partials/sidebar.html' %}
+
+    <main class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold">Bildirişlər</h1>
+            <a href="{% url 'calendars:index' %}" class="text-sm text-brand-600 hover:underline">← Təqvim</a>
+        </div>
+        <div class="space-y-3">
+            {% for n in notifications %}
+            <div class="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="text-xl">🔔</span>
+                    <div class="min-w-0">
+                        <div class="text-sm font-medium">{{ n.text }}</div>
+                        <div class="text-xs text-gray-400">{{ n.created_at|date:"d.m.Y H:i" }}</div>
+                    </div>
+                </div>
+                {% if n.link %}
+                <div class="flex gap-2 shrink-0">
+                    {% if n.link|slice:":6" == "/meet/" %}
+                    <a href="{{ n.link }}" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">▶ Qoşul</a>
+                    {% else %}
+                    <form method="post" action="{{ n.link }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="accept">
+                        <button type="submit" class="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-medium">Qəbul et</button>
+                    </form>
+                    <form method="post" action="{{ n.link }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="decline">
+                        <button type="submit" class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium">Rədd et</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="text-center py-16 text-gray-400">
+                <div class="text-5xl mb-3">🔕</div>
+                Bildiriş yoxdur.
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+{% endblock %}
